@@ -25,7 +25,7 @@ instructions			BYTE			"Please provide 10 signed integers.",13,10
 						BYTE			"Each less than the 32 bit limit.",13,10
 						BYTE			"Once all 10 valid signed integers have been input the following will be displayed: ",13,10
 						BYTE			"the list of integers, their sum, and their average.",13,10,0
-prompt					BYTE			"Enter a signed integer: ",13,10,0
+prompt					BYTE			"Enter a signed integer: ",0
 error					BYTE			"Error: The supplied signed integer is too large, please try again.",13,10,0
 list					BYTE			"You supplied the following numbers: ",13,10,0
 sum						BYTE			"The sum is: ",13,10,0
@@ -46,17 +46,24 @@ main PROC
 ; Modifies Stack to push parameters, comparison of EDI to check sort progress and ECX for looping over sortList.
 ; CreateOutputFile places filehandle address in EAX, EDX is loaded with randArray offset and ECX with ARRAYSIZE*4 for use with ReadFromFile procedure.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-MOV						EDX,			OFFSET			programTitle
-CALL					WriteString
-CALL					CrLf
+	MOV						EDX,			OFFSET			programTitle
+	CALL					WriteString
+	CALL					CrLf
 
-MOV						EDX,			OFFSET			instructions
-CALL					WriteString
+	MOV						EDX,			OFFSET			instructions
+	CALL					WriteString
+
+	MOV						ECX,			10
+
+_getValues:
+	PUSH					OFFSET			prompt
+	PUSH					OFFSET			error
+	PUSH					OFFSET			list
+	CALL					ReadVal
+	LOOP					_getValues
 
 
-
-
-	Invoke ExitProcess,0	; exit to operating system
+	Invoke					ExitProcess,0	; exit to operating system
 main ENDP
 
 ReadVal PROC
@@ -72,6 +79,16 @@ ReadVal PROC
 ; Modifies Stack to push parameters, comparison of EDI to check sort progress and ECX for looping over sortList.
 ; CreateOutputFile places filehandle address in EAX, EDX is loaded with randArray offset and ECX with ARRAYSIZE*4 for use with ReadFromFile procedure.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	PUSH					EBP
+	MOV						EBP,			ESP
+	MOV						EDI,			[EBP+8]
+	MOV						EBX,			[EBP+12]
+	MOV						EDX,			[EBP+16]
+	CALL					WriteString
+	CALL					ReadDec
+	MOV						ESP,			EBP
+	POP						EBP
+	RET
 
 ReadVal ENDP
 

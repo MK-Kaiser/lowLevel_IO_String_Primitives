@@ -2,7 +2,7 @@ TITLE Project 6     (Proj6_kaisemar.asm)
 
 COMMENT !
 Author: Mark Kaiser
-Last Modified: 21 November 2021
+Last Modified: 23 November 2021
 OSU email address: kaisemar@oregonstate.edu
 Course number/section:   CS271 Section 400
 Project Number: 6            
@@ -13,9 +13,8 @@ Description: ...
 INCLUDE Irvine32.inc
 
 ; two macros: mGetString and mDisplayString
-mGetString				MACRO				values
-	LOCAL				values
-	MOV					EDX,				OFFSET				values
+mGetString				MACRO
+	MOV						EDX,			[EBP+8]				; values
 	CALL				ReadString
 ENDM
 
@@ -97,10 +96,7 @@ ReadVal PROC
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	PUSH					EBP
 	MOV						EBP,			ESP
-	MOV						EDX,			[EBP+8]				; values
-	CALL					ReadString
-
-
+	mGetString
 	MOV						ESP,			EBP
 	POP						EBP
 	RET

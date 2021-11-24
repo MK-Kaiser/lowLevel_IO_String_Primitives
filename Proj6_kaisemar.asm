@@ -18,11 +18,12 @@ mGetString				MACRO
 	CALL				ReadString
 ENDM
 
-mDisplayString			MACRO
+mDisplayString			MACRO				string
+	MOV					EDX,				string
 	CALL				WriteString
 ENDM
 
-; (insert constant definitions here)
+COUNT	=	10
 
 .data
 
@@ -39,7 +40,7 @@ sum						BYTE			"The sum is: ",13,10,0
 average					BYTE			"The rounded average is: ",13,10,0
 goodbye					BYTE			"Thanks for stopping by, good bye.",13,10,0
 values					BYTE			10						DUP(?)
-count					DWORD			10
+;count					DWORD			0000000A
 
 .code
 main PROC
@@ -63,7 +64,7 @@ main PROC
 	CALL					WriteString
 
 
-	MOV						ECX,			count
+	MOV						ECX,			COUNT
 	MOV						EDX,			OFFSET			values
 
 _getValues:
@@ -72,11 +73,18 @@ _getValues:
 	MOV						EDX,			OFFSET			prompt
 	CALL					WriteString
 	MOV						EDX,			ESI
-	;POP						EDX
 	CALL					ReadVal
 	ADD						EDX,			4
+	POP						EDI
 	LOOP					_getValues
 
+
+	MOV						ECX,			COUNT+1
+	MOV						EDX,			OFFSET			values
+_print:
+	PUSH					EDX
+	CALL					WriteVal
+	LOOP					_print
 
 	Invoke					ExitProcess,0	; exit to operating system
 main ENDP
@@ -96,7 +104,7 @@ ReadVal PROC
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	PUSH					EBP
 	MOV						EBP,			ESP
-	mGetString
+	mGetString				
 	MOV						ESP,			EBP
 	POP						EBP
 	RET
@@ -122,9 +130,11 @@ WriteVal PROC
 
 	PUSH					EBP
 	MOV						EBP,			ESP
-	MOV						EDX,			[EBP+8]
-	mDisplayString			
+	MOV						EDX,			[EBP+8]				; values
 
+	mDisplayString			EDX
+	ADD						EDX,			4
+	PUSH					EDX
 	MOV						ESP,			EBP
 	POP						EBP
 	RET

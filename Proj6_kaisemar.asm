@@ -12,8 +12,16 @@ Description: ...
 
 INCLUDE Irvine32.inc
 
-; (insert macro definitions here)
 ; two macros: mGetString and mDisplayString
+mGetString				MACRO				values
+	LOCAL				values
+	MOV					EDX,				OFFSET				values
+	CALL				ReadString
+ENDM
+
+mDisplayString			MACRO
+	CALL				WriteString
+ENDM
 
 ; (insert constant definitions here)
 
@@ -31,6 +39,8 @@ list					BYTE			"You supplied the following numbers: ",13,10,0
 sum						BYTE			"The sum is: ",13,10,0
 average					BYTE			"The rounded average is: ",13,10,0
 goodbye					BYTE			"Thanks for stopping by, good bye.",13,10,0
+values					BYTE			10						DUP(?)
+count					DWORD			10
 
 .code
 main PROC
@@ -53,13 +63,19 @@ main PROC
 	MOV						EDX,			OFFSET			instructions
 	CALL					WriteString
 
-	MOV						ECX,			10
+
+	MOV						ECX,			count
+	MOV						EDX,			OFFSET			values
 
 _getValues:
-	PUSH					OFFSET			prompt
-	PUSH					OFFSET			error
-	PUSH					OFFSET			list
+	PUSH					EDX				; previous values
+	MOV						ESI,			EDX
+	MOV						EDX,			OFFSET			prompt
+	CALL					WriteString
+	MOV						EDX,			ESI
+	;POP						EDX
 	CALL					ReadVal
+	ADD						EDX,			4
 	LOOP					_getValues
 
 
@@ -81,11 +97,10 @@ ReadVal PROC
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	PUSH					EBP
 	MOV						EBP,			ESP
-	MOV						EDI,			[EBP+8]
-	MOV						EBX,			[EBP+12]
-	MOV						EDX,			[EBP+16]
-	CALL					WriteString
-	CALL					ReadDec
+	MOV						EDX,			[EBP+8]				; values
+	CALL					ReadString
+
+
 	MOV						ESP,			EBP
 	POP						EBP
 	RET
@@ -108,6 +123,16 @@ WriteVal PROC
 ; Modifies Stack to push parameters, comparison of EDI to check sort progress and ECX for looping over sortList.
 ; CreateOutputFile places filehandle address in EAX, EDX is loaded with randArray offset and ECX with ARRAYSIZE*4 for use with ReadFromFile procedure.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	PUSH					EBP
+	MOV						EBP,			ESP
+	MOV						EDX,			[EBP+8]
+	mDisplayString			
+
+	MOV						ESP,			EBP
+	POP						EBP
+	RET
+
 
 WriteVal ENDP
 

@@ -15,9 +15,14 @@ INCLUDE Irvine32.inc
 ; two macros: mGetString and mDisplayString
 mGetString				MACRO
 	CALL				WriteString
-	MOV					ESI,			EDX					; backup prompt for next loop
-	MOV					EDX,			EDI					; restore values after prompt
+	MOV					EBX,			EDX					; backup prompt for next loop
+	MOV					EDX,			ESI					; restore values after prompt
 	CALL				ReadString
+
+	MOV					ESI,			EDX
+	LODSB
+	SUB					AL,				48
+	CALL				WriteDec
 	ADD					EDX,			4
 ENDM
 
@@ -42,7 +47,7 @@ list					BYTE			"You supplied the following numbers: ",13,10,0
 sum						BYTE			"The sum is: ",13,10,0
 average					BYTE			"The rounded average is: ",13,10,0
 goodbye					BYTE			"Thanks for stopping by, good bye.",13,10,0
-values					SDWORD			12						DUP(0)
+values					BYTE			10 DUP(?),0
 
 .code
 main PROC
@@ -58,12 +63,10 @@ main PROC
 ; Modifies Stack to push parameters, comparison of EDI to check sort progress and ECX for looping over sortList.
 ; CreateOutputFile places filehandle address in EAX, EDX is loaded with randArray offset and ECX with ARRAYSIZE*4 for use with ReadFromFile procedure.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-	MOV						EDX,			OFFSET			programTitle
-	CALL					WriteString
-	CALL					CrLf
-
-	MOV						EDX,			OFFSET			instructions
-	CALL					WriteString
+	
+	PUSH					OFFSET			programTitle
+	PUSH					OFFSET			instructions
+	CALL					introduction
 
 
 	MOV						ECX,			COUNT
@@ -73,7 +76,7 @@ main PROC
 _getValues:
 	CALL					ReadVal
 	PUSH					EDX
-	PUSH					ESI
+	PUSH					EBX
 	LOOP					_getValues
 
 
@@ -86,6 +89,35 @@ _print:
 
 	Invoke					ExitProcess,0	; exit to operating system
 main ENDP
+
+
+introduction PROC
+; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; NAME: introduction
+; This prodcedure handles output of program, programmer introduction and extra credit title.
+; Preconditions: Called by main procedure.
+; Receives: Two parameters that are offsets address to where string is in memory.
+; Returns: N/A
+; Usage of CALL WriteString referenced from: CS271 Irvine Procedure Reference.
+; Formatting in accordance with: CS271 Style Guide.
+; Modifies EDX to load memory address of string to be printed on standard output. EBP and ESP registers used to preserve stack frame and restore return address to stack.
+; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	PUSH		EBP							; preserve EBP
+	MOV			EBP,			ESP			; static stack-frame pointer
+	MOV			EDX,			[EBP+12]	; grabs introduction message from stack
+	CALL		WriteString
+	CALL		CrLf
+	MOV			EDX,			[EBP+8]		; grabs description message from stack
+	CALL		WriteString
+	CALL		CrLf
+	MOV			ESP,			EBP			; restore ESP
+	POP			EBP							; restore old EBP
+	CALL		CrLf
+	RET
+
+introduction ENDP
+
 
 ReadVal PROC
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -103,7 +135,7 @@ ReadVal PROC
 	PUSH					EBP
 	MOV						EBP,			ESP
 	MOV						EDX,			[EBP+8]				; prompt
-	MOV						EDI,			[EBP+12]			; values
+	MOV						ESI,			[EBP+12]			; values
 	mGetString				
 
 	MOV					ESP,			EBP

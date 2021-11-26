@@ -17,13 +17,27 @@ mGetString				MACRO
 	CALL				WriteString
 	MOV					EBX,			EDX					; backup prompt for next loop
 	MOV					EDX,			ESI					; restore values after prompt
+	INC					ECX
 	CALL				ReadString
+	DEC					ECX
 
 	MOV					ESI,			EDX
 	LODSB
-	SUB					AL,				48
-	CALL				WriteDec
+	CMP					EAX,				LO
+	JB					_invalid
+	CMP					EAX,				HI
+	JA					_invalid
+	;SUB					EAX,				LO
 	ADD					EDX,			4
+	JMP					_continue
+
+_invalid:
+	MOV						ESI,			EDX
+	MOV						EDX,			EDI
+	CALL					WriteString
+	MOV						EDX,			EBX
+	JMP						_tryAgain
+
 ENDM
 
 mDisplayString			MACRO				string
@@ -32,6 +46,8 @@ mDisplayString			MACRO				string
 ENDM
 
 COUNT	=	10
+LO		=   30h
+HI		=	39h
 
 .data
 
@@ -70,15 +86,16 @@ main PROC
 
 
 	MOV						ECX,			COUNT
+	PUSH					OFFSET			error
 	PUSH					OFFSET			values			
 	PUSH					OFFSET			prompt
 
 _getValues:
 	CALL					ReadVal
+	PUSH					EDI
 	PUSH					EDX
 	PUSH					EBX
 	LOOP					_getValues
-
 
 	MOV						ECX,			COUNT
 	MOV						EDX,			OFFSET			values
@@ -114,7 +131,7 @@ introduction PROC
 	MOV			ESP,			EBP			; restore ESP
 	POP			EBP							; restore old EBP
 	CALL		CrLf
-	RET
+	RET			8
 
 introduction ENDP
 
@@ -136,11 +153,17 @@ ReadVal PROC
 	MOV						EBP,			ESP
 	MOV						EDX,			[EBP+8]				; prompt
 	MOV						ESI,			[EBP+12]			; values
+	MOV						EDI,			[EBP+16]			; error
+
+_tryAgain:
 	mGetString				
 
+_continue:
 	MOV					ESP,			EBP
 	POP					EBP
-	RET					
+	RET					12
+	
+
 
 ReadVal ENDP
 

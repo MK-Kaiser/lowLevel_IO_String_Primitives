@@ -14,8 +14,11 @@ INCLUDE Irvine32.inc
 
 ; two macros: mGetString and mDisplayString
 mGetString				MACRO
-	MOV						EDX,			[EBP+8]				; values
+	CALL				WriteString
+	MOV					ESI,			EDX					; backup prompt for next loop
+	MOV					EDX,			EDI					; restore values after prompt
 	CALL				ReadString
+	ADD					EDX,			4
 ENDM
 
 mDisplayString			MACRO				string
@@ -39,8 +42,7 @@ list					BYTE			"You supplied the following numbers: ",13,10,0
 sum						BYTE			"The sum is: ",13,10,0
 average					BYTE			"The rounded average is: ",13,10,0
 goodbye					BYTE			"Thanks for stopping by, good bye.",13,10,0
-values					BYTE			10						DUP(?)
-;count					DWORD			0000000A
+values					SDWORD			12						DUP(0)
 
 .code
 main PROC
@@ -65,21 +67,17 @@ main PROC
 
 
 	MOV						ECX,			COUNT
-	MOV						EDX,			OFFSET			values
+	PUSH					OFFSET			values			
+	PUSH					OFFSET			prompt
 
 _getValues:
-	PUSH					EDX				; previous values
-	MOV						ESI,			EDX
-	MOV						EDX,			OFFSET			prompt
-	CALL					WriteString
-	MOV						EDX,			ESI
 	CALL					ReadVal
-	ADD						EDX,			4
-	POP						EDI
+	PUSH					EDX
+	PUSH					ESI
 	LOOP					_getValues
 
 
-	MOV						ECX,			COUNT+1
+	MOV						ECX,			COUNT
 	MOV						EDX,			OFFSET			values
 _print:
 	PUSH					EDX
@@ -104,14 +102,15 @@ ReadVal PROC
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	PUSH					EBP
 	MOV						EBP,			ESP
+	MOV						EDX,			[EBP+8]				; prompt
+	MOV						EDI,			[EBP+12]			; values
 	mGetString				
-	MOV						ESP,			EBP
-	POP						EBP
-	RET
+
+	MOV					ESP,			EBP
+	POP					EBP
+	RET					
 
 ReadVal ENDP
-
-
 
 
 WriteVal PROC

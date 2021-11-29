@@ -2,7 +2,7 @@ TITLE Project 6     (Proj6_kaisemar.asm)
 
 COMMENT !
 Author: Mark Kaiser
-Last Modified: 26 November 2021
+Last Modified: 23 November 2021
 OSU email address: kaisemar@oregonstate.edu
 Course number/section:   CS271 Section 400
 Project Number: 6            
@@ -14,57 +14,13 @@ INCLUDE Irvine32.inc
 
 ; two macros: mGetString and mDisplayString
 mGetString				MACRO
-; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-; NAME: mGetString
-; This Macro calls all other procedures to include stack parameter setup.
-; Preconditions: N/A
-; Receives: N/A
-; Returns: N/A
-; Usage of PUSH, OFFSET, CALL, CMP, JConds referenced from: CS271 Instruction Reference.
-; Usage of CreateOutputFile, Randomize, OpenInputFile, and ReadFromFile referenced from: CS271 Irvine Reference.
-; Formatting in accordance with: CS271 Style Guide.
-; Modifies Stack to push parameters, comparison of EDI to check sort progress and ECX for looping over sortList.
-; CreateOutputFile places filehandle address in EAX, EDX is loaded with randArray offset and ECX with ARRAYSIZE*4 for use with ReadFromFile procedure.
-; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	CALL				WriteString
-	MOV					EBX,			EDX					; backup prompt for next loop
-	MOV					EDX,			ESI					; restore values after prompt
-	INC					ECX
+	MOV					EDX,			ESI
 	CALL				ReadString
-	DEC					ECX
-
-	MOV					ESI,			EDX
-	LODSB
-	CMP					EAX,				LO
-	JB					_invalid
-	CMP					EAX,				HI
-	JA					_invalid
-	;SUB					EAX,				LO
-	ADD					EDX,			4
-	JMP					_continue
-
-_invalid:
-	MOV						ESI,			EDX
-	MOV						EDX,			EDI
-	CALL					WriteString
-	MOV						EDX,			EBX
-	JMP						_tryAgain
 
 ENDM
 
 mDisplayString			MACRO				string
-; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-; NAME: mDisplayString
-; This Macro calls all other procedures to include stack parameter setup.
-; Preconditions: N/A
-; Receives: N/A
-; Returns: N/A
-; Usage of PUSH, OFFSET, CALL, CMP, JConds referenced from: CS271 Instruction Reference.
-; Usage of CreateOutputFile, Randomize, OpenInputFile, and ReadFromFile referenced from: CS271 Irvine Reference.
-; Formatting in accordance with: CS271 Style Guide.
-; Modifies Stack to push parameters, comparison of EDI to check sort progress and ECX for looping over sortList.
-; CreateOutputFile places filehandle address in EAX, EDX is loaded with randArray offset and ECX with ARRAYSIZE*4 for use with ReadFromFile procedure.
-; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	MOV					EDX,				string
 	CALL				WriteString
 ENDM
@@ -87,7 +43,9 @@ list					BYTE			"You supplied the following numbers: ",13,10,0
 sum						BYTE			"The sum is: ",13,10,0
 average					BYTE			"The rounded average is: ",13,10,0
 goodbye					BYTE			"Thanks for stopping by, good bye.",13,10,0
-values					BYTE			10 DUP(?),0
+integers				SDWORD			10	DUP(?)
+result					SDWORD			10	DUP(?)
+
 
 .code
 main PROC
@@ -103,67 +61,37 @@ main PROC
 ; Modifies Stack to push parameters, comparison of EDI to check sort progress and ECX for looping over sortList.
 ; CreateOutputFile places filehandle address in EAX, EDX is loaded with randArray offset and ECX with ARRAYSIZE*4 for use with ReadFromFile procedure.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-	
-	PUSH					OFFSET			programTitle
-	PUSH					OFFSET			instructions
-	CALL					introduction
+	MOV						EDX,			OFFSET			programTitle
+	CALL					WriteString
+	CALL					CrLf
 
+	MOV						EDX,			OFFSET			instructions
+	CALL					WriteString
 
 	MOV						ECX,			COUNT
-	PUSH					OFFSET			error
-	PUSH					OFFSET			values			
-	PUSH					OFFSET			prompt
-
+	MOV						EDI,			OFFSET			integers			
 _getValues:
+	PUSH					OFFSET			result			; holds current ReadString value
+	PUSH					ECX								; resumes with previous ECX count
+	PUSH					OFFSET			error			; use same error string each time
+	PUSH					EDI								; resume with previous buffer offset
+	PUSH					OFFSET			prompt			; use same prompt string each time
 	CALL					ReadVal
-	PUSH					EDI
-	PUSH					EDX
-	PUSH					EBX
 	LOOP					_getValues
 
 	MOV						ECX,			COUNT
-	MOV						EDX,			OFFSET			values
-_print:
-; need to modify ReadVal to store as integers in a buffer, then iterate through buffer here 1 value at a time passed to WriteVal along with a ', ' string
-; need a new procedure to handle sum and rounded average calculations that store values and call WriteVal again to output
-	PUSH					EDX
+	MOV						ESI,			integers
+	MOV						EDI,			result
+_convert:
+	PUSH					ESI
+	PUSH					EDI
+	MOV						AL,				0Fh
+	LOOP					_convert
 	CALL					WriteVal
-	LOOP					_print
-	
-	PUSH					OFFSET			goodbye
-	CALL					farewell
+
 
 	Invoke					ExitProcess,0	; exit to operating system
 main ENDP
-
-
-introduction PROC
-; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-; NAME: introduction
-; This prodcedure handles output of program, programmer introduction and extra credit title.
-; Preconditions: Called by main procedure.
-; Receives: Two parameters that are offsets address to where string is in memory.
-; Returns: N/A
-; Usage of CALL WriteString referenced from: CS271 Irvine Procedure Reference.
-; Formatting in accordance with: CS271 Style Guide.
-; Modifies EDX to load memory address of string to be printed on standard output. EBP and ESP registers used to preserve stack frame and restore return address to stack.
-; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-	PUSH		EBP							; preserve EBP
-	MOV			EBP,			ESP			; static stack-frame pointer
-	MOV			EDX,			[EBP+12]	; grabs introduction message from stack
-	CALL		WriteString
-	CALL		CrLf
-	MOV			EDX,			[EBP+8]		; grabs description message from stack
-	CALL		WriteString
-	CALL		CrLf
-	MOV			ESP,			EBP			; restore ESP
-	POP			EBP							; restore old EBP
-	CALL		CrLf
-	RET			8
-
-introduction ENDP
-
 
 ReadVal PROC
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -178,22 +106,35 @@ ReadVal PROC
 ; Modifies Stack to push parameters, comparison of EDI to check sort progress and ECX for looping over sortList.
 ; CreateOutputFile places filehandle address in EAX, EDX is loaded with randArray offset and ECX with ARRAYSIZE*4 for use with ReadFromFile procedure.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-	PUSH					EBP
-	MOV						EBP,			ESP
-	MOV						EDX,			[EBP+8]				; prompt
-	MOV						ESI,			[EBP+12]			; values
-	MOV						EDI,			[EBP+16]			; error
+	PUSH				EBP
+	MOV					EBP,			ESP
+	MOV					EDX,			[EBP+8]				; prompt
+	MOV					EDI,			[EBP+12]			; integers
+	MOV					EBX,			[EBP+16]			; error
+	MOV					ECX,			[EBP+20]			; COUNT
+	MOV					ESI,			[EBP+24]			; result
+	mGetString	
 
-_tryAgain:
-	mGetString				
+	LODSD
+	CMP					AL,				LO
+	JB					_invalid
+	CMP					AL,				HI
+	JA					_invalid
+	SUB					AL,				LO
+	MOV					[EDI],			AL
+	JMP					_exit
 
-_continue:
+_invalid:
+	;need to put error out of range message here.
+	MOV					EDX,			EBX
+	CALL				WriteString
+
+_exit:
+	ADD					EDI,			4
 	MOV					ESP,			EBP
 	POP					EBP
-	RET					12
+	RET					20
 	
-
-
 ReadVal ENDP
 
 
@@ -213,42 +154,12 @@ WriteVal PROC
 
 	PUSH					EBP
 	MOV						EBP,			ESP
-	MOV						EDX,			[EBP+8]				; values
-
 	mDisplayString			EDX
-	CALL					CrLf
-	ADD						EDX,			4
-	PUSH					EDX
 	MOV						ESP,			EBP
 	POP						EBP
 	RET
 
 
 WriteVal ENDP
-
-
-
-farewell PROC
-; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-; NAME: farewell
-; This prodcedure outputs the goodbye message.
-; Preconditions: Called by main procedure.
-; Receives: One parameter from the stack in the form of a memory address that points to a string.
-; Returns: Outputs the given string.
-; Usage of CALL WriteString referenced from: CS271 Irvine Procedure Reference.
-; Formatting in accordance with: CS271 Style Guide.
-; Modifies EBP and ESP to preserve the stack frame and EDX to hold the address for the goodbye message.
-; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-	PUSH		EBP							
-	MOV			EBP,			ESP			
-	CALL		CrLf
-	MOV			EDX,			[EBP+8]			; grab offset to goodbye string
-	CALL		WriteString
-	MOV			ESP,			EBP			
-	POP			EBP							
-	RET			4
-
-farewell ENDP
 
 END main

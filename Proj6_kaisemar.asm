@@ -16,13 +16,15 @@ INCLUDE Irvine32.inc
 mGetString				MACRO
 	CALL				WriteString
 	MOV					EDX,			ESI
+	INC					ECX
 	CALL				ReadString
+	DEC					ECX
 
 ENDM
 
 mDisplayString			MACRO				string
-	MOV					EDX,				string
 	CALL				WriteString
+	CALL				CrLf
 ENDM
 
 COUNT	=	10
@@ -43,8 +45,8 @@ list					BYTE			"You supplied the following numbers: ",13,10,0
 sum						BYTE			"The sum is: ",13,10,0
 average					BYTE			"The rounded average is: ",13,10,0
 goodbye					BYTE			"Thanks for stopping by, good bye.",13,10,0
-integers				SDWORD			10	DUP(?)
-result					SDWORD			10	DUP(?)
+integers				SDWORD			10	DUP(0),0
+result					SDWORD			10	DUP(0),0
 
 
 .code
@@ -82,12 +84,11 @@ _getValues:
 	MOV						ECX,			COUNT
 	MOV						ESI,			integers
 	MOV						EDI,			result
-_convert:
-	PUSH					ESI
-	PUSH					EDI
-	MOV						AL,				0Fh
-	LOOP					_convert
+	PUSH					OFFSET			sum
+	PUSH					OFFSET			average
+	PUSH					OFFSET			list
 	CALL					WriteVal
+
 
 
 	Invoke					ExitProcess,0	; exit to operating system
@@ -125,15 +126,15 @@ ReadVal PROC
 	JMP					_exit
 
 _invalid:
-	;need to put error out of range message here.
+	DEC					ECX							; input didnt count
 	MOV					EDX,			EBX
-	CALL				WriteString
+	mGetString
 
 _exit:
 	ADD					EDI,			4
 	MOV					ESP,			EBP
 	POP					EBP
-	RET					20
+	RET					32
 	
 ReadVal ENDP
 
@@ -154,6 +155,11 @@ WriteVal PROC
 
 	PUSH					EBP
 	MOV						EBP,			ESP
+	MOV						EDX,			[EBP+8]				; list prompt
+	mDisplayString			EDX
+	MOV						EDX,			[EBP+12]			; average prompt
+	mDisplayString			EDX
+	MOV						EDX,			[EBP+16]			; sum prompt
 	mDisplayString			EDX
 	MOV						ESP,			EBP
 	POP						EBP

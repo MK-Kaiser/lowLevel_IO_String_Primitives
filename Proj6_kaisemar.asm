@@ -13,7 +13,8 @@ Description: ...
 INCLUDE Irvine32.inc
 
 ; two macros: mGetString and mDisplayString
-mGetString				MACRO
+mGetString				MACRO			prompt
+	MOV					EDX,			prompt
 	CALL				WriteString
 	MOV					EDX,			ESI
 	INC					ECX
@@ -23,6 +24,7 @@ mGetString				MACRO
 ENDM
 
 mDisplayString			MACRO				string
+	MOV					EDX,				string
 	CALL				WriteString
 	CALL				CrLf
 ENDM
@@ -63,12 +65,10 @@ main PROC
 ; Modifies Stack to push parameters, comparison of EDI to check sort progress and ECX for looping over sortList.
 ; CreateOutputFile places filehandle address in EAX, EDX is loaded with randArray offset and ECX with ARRAYSIZE*4 for use with ReadFromFile procedure.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-	MOV						EDX,			OFFSET			programTitle
-	CALL					WriteString
+	PUSH					OFFSET			programTitle
+	PUSH					OFFSET			instructions
+	CALL					Intro
 	CALL					CrLf
-
-	MOV						EDX,			OFFSET			instructions
-	CALL					WriteString
 
 	MOV						ECX,			COUNT
 	MOV						EDI,			OFFSET			integers			
@@ -81,9 +81,8 @@ _getValues:
 	CALL					ReadVal
 	LOOP					_getValues
 
-	MOV						ECX,			COUNT
-	MOV						ESI,			integers
-	MOV						EDI,			result
+	PUSH					OFFSET			integers
+	PUSH					OFFSET			result
 	PUSH					OFFSET			sum
 	PUSH					OFFSET			average
 	PUSH					OFFSET			list
@@ -93,6 +92,31 @@ _getValues:
 
 	Invoke					ExitProcess,0	; exit to operating system
 main ENDP
+
+Intro PROC
+; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; NAME: main
+; This prodcedure calls all other procedures to include stack parameter setup.
+; Preconditions: N/A
+; Receives: N/A
+; Returns: N/A
+; Usage of PUSH, OFFSET, CALL, CMP, JConds referenced from: CS271 Instruction Reference.
+; Usage of CreateOutputFile, Randomize, OpenInputFile, and ReadFromFile referenced from: CS271 Irvine Reference.
+; Formatting in accordance with: CS271 Style Guide.
+; Modifies Stack to push parameters, comparison of EDI to check sort progress and ECX for looping over sortList.
+; CreateOutputFile places filehandle address in EAX, EDX is loaded with randArray offset and ECX with ARRAYSIZE*4 for use with ReadFromFile procedure.
+; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	PUSH					EBP
+	MOV						EBP,			ESP
+	mDisplayString			[EBP+12]					; display programTitle
+	mDisplayString			[EBP+8]						; average instructions
+	MOV						ESP,			EBP
+	POP						EBP
+	RET						8
+
+
+Intro ENDP
 
 ReadVal PROC
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -114,23 +138,25 @@ ReadVal PROC
 	MOV					EBX,			[EBP+16]			; error
 	MOV					ECX,			[EBP+20]			; COUNT
 	MOV					ESI,			[EBP+24]			; result
-	mGetString	
 
-	LODSD
+	PUSH				ECX
+	mGetString			[EBP+8]	
+
+	LODSB
 	CMP					AL,				LO
 	JB					_invalid
 	CMP					AL,				HI
 	JA					_invalid
 	SUB					AL,				LO
-	MOV					[EDI],			AL
+	MOV					[EDI],			EAX
 	JMP					_exit
 
 _invalid:
-	DEC					ECX							; input didnt count
-	MOV					EDX,			EBX
-	mGetString
+	INC					ECX							; input didnt count
+	mDisplayString		[EBP+16]
 
 _exit:
+	POP					ECX
 	ADD					EDI,			4
 	MOV					ESP,			EBP
 	POP					EBP
@@ -155,15 +181,18 @@ WriteVal PROC
 
 	PUSH					EBP
 	MOV						EBP,			ESP
-	MOV						EDX,			[EBP+8]				; list prompt
-	mDisplayString			EDX
-	MOV						EDX,			[EBP+12]			; average prompt
-	mDisplayString			EDX
-	MOV						EDX,			[EBP+16]			; sum prompt
-	mDisplayString			EDX
+	mDisplayString			[EBP+8]							; display prompt
+	MOV						EDI,			[EBP+20]		; result
+
+	mDisplayString			[EBP+12]						; average prompt
+
+	MOV						ESI,			[EBP+24]		; integers
+
+	mDisplayString			[EBP+16]						; sum prompt
+
 	MOV						ESP,			EBP
 	POP						EBP
-	RET
+	RET						12
 
 
 WriteVal ENDP

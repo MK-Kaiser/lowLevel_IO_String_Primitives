@@ -13,20 +13,19 @@ Description: ...
 INCLUDE Irvine32.inc
 
 ; two macros: mGetString and mDisplayString
-mGetString				MACRO			prompt
-	MOV					EDX,			prompt
-	CALL				WriteString
-	MOV					EDX,			ESI
-	INC					ECX
+mGetString				MACRO			buffer, size
+	PUSH				ECX
+	PUSH				EDX
+	MOV					EDX,			buffer
+	MOV					ECX,			size
 	CALL				ReadString
-	DEC					ECX
-
+	POP					EDX
+	POP					ECX
 ENDM
 
 mDisplayString			MACRO				string
 	MOV					EDX,				string
 	CALL				WriteString
-	CALL				CrLf
 ENDM
 
 COUNT	=	10
@@ -47,8 +46,8 @@ list					BYTE			"You supplied the following numbers: ",13,10,0
 sum						BYTE			"The sum is: ",13,10,0
 average					BYTE			"The rounded average is: ",13,10,0
 goodbye					BYTE			"Thanks for stopping by, good bye.",13,10,0
-integers				SDWORD			10	DUP(0),0
-result					SDWORD			10	DUP(0),0
+result					BYTE			30	DUP(0)
+input					SDWORD			21	DUP(0)
 
 
 .code
@@ -71,17 +70,19 @@ main PROC
 	CALL					CrLf
 
 	MOV						ECX,			COUNT
-	MOV						EDI,			OFFSET			integers			
+	MOV						ESI,			OFFSET			input
+	MOV						EDI,			OFFSET			result
 _getValues:
-	PUSH					OFFSET			result			; holds current ReadString value
+	PUSH					EDI
+	PUSH					SIZEOF			input
 	PUSH					ECX								; resumes with previous ECX count
 	PUSH					OFFSET			error			; use same error string each time
-	PUSH					EDI								; resume with previous buffer offset
+	PUSH					ESI								; resume with previous buffer offset
 	PUSH					OFFSET			prompt			; use same prompt string each time
 	CALL					ReadVal
 	LOOP					_getValues
 
-	PUSH					OFFSET			integers
+	PUSH					OFFSET			input
 	PUSH					OFFSET			result
 	PUSH					OFFSET			sum
 	PUSH					OFFSET			average
@@ -134,13 +135,12 @@ ReadVal PROC
 	PUSH				EBP
 	MOV					EBP,			ESP
 	MOV					EDX,			[EBP+8]				; prompt
-	MOV					EDI,			[EBP+12]			; integers
+	MOV					ESI,			[EBP+12]			; input buffer
 	MOV					EBX,			[EBP+16]			; error
 	MOV					ECX,			[EBP+20]			; COUNT
-	MOV					ESI,			[EBP+24]			; result
-
-	PUSH				ECX
-	mGetString			[EBP+8]	
+	MOV					EDI,			[EBP+28]			; result buffer
+	mDisplayString		[EBP+8]								; display programTitle
+	mGetString			[EBP+12], [EBP+24]
 
 	LODSB
 	CMP					AL,				LO
@@ -152,15 +152,14 @@ ReadVal PROC
 	JMP					_exit
 
 _invalid:
-	INC					ECX							; input didnt count
+	INC					ECX									; input didnt count
 	mDisplayString		[EBP+16]
 
 _exit:
-	POP					ECX
 	ADD					EDI,			4
 	MOV					ESP,			EBP
 	POP					EBP
-	RET					32
+	RET					28
 	
 ReadVal ENDP
 
@@ -186,7 +185,7 @@ WriteVal PROC
 
 	mDisplayString			[EBP+12]						; average prompt
 
-	MOV						ESI,			[EBP+24]		; integers
+	MOV						ESI,			[EBP+24]		; input buffer
 
 	mDisplayString			[EBP+16]						; sum prompt
 

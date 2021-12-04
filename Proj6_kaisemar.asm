@@ -139,29 +139,70 @@ ReadVal PROC
 	mDisplayString		[EBP+8]								; display programTitle
 	mGetString			[EBP+12], [EBP+24]
 
+	PUSH				EBP
 	PUSH				ECX
 	MOV					ECX,			EAX
-_again:
 	LODSB
-	CMP					AL,				LO
-	JB					_invalid
-	CMP					AL,				HI
-	JA					_invalid
-	SUB					AL,				LO
-	MOV					[EDI],			AL
-	CMP					ECX,			0
-	ADD					EDI,			1
+	MOV					DL,				AL
+
+_positiveCheck:
+	CMP					DL,				2Bh
+	JNE					_negativeCheck
+	MOV					EBP,			1
+	LODSB
 	DEC					ECX
-	JA					_again
+	MOV					DL,				AL
+
+_negativeCheck:
+	CMP					DL,				2Dh
+	JNE					_noSign
+	MOV					EBP,			-1
+	LODSB
+	DEC					ECX
+	MOV					DL,				AL
+
+_noSign:
+	MOV					EBP,			0
+	CMP					DL,				LO
+	JB					_invalid
+	CMP					DL,				HI
+	JA					_invalid
+
+	MOV					EBX,			10
+_convert:
+	MOV					EDX,			EAX
+	CMP					DL,				LO
+	JB					_exit
+	CMP					DL,				HI
+	JA					_exit
+	SUB					AL,				LO
+	SUB					DL,				LO
+
+
+	PUSH				EDX
+	MOV					EAX,			EBP
+	IMUL				EBX
+	POP					EDX
+	JO					_invalid						; check for overflow
+	MOV					EBP,			EAX
+	ADD					EBP,			EDX				; restore pointer
+	JO					_invalid						; check for overflow
+	DEC					ECX
+	LODSB
+	CMP					ECX,			0
+	JA					_convert
 	POP					ECX
+	;MOV			EDI,		EBX								; offset to address of array that will hold the ten
+	MOV					[EDI],			EBP
+	ADD					EDI,			4
+	POP					EBP
 	JMP					_exit
 
 _invalid:
-	INC					ECX									; input didnt count
+	INC					ECX								; input didnt count
 	mDisplayString		[EBP+16]
 
 _exit:
-	;ADD					EDI,			4
 	MOV					ESP,			EBP
 	POP					EBP
 	RET					28

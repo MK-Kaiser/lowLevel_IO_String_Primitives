@@ -2,7 +2,7 @@ TITLE Project 6     (Proj6_kaisemar.asm)
 
 COMMENT !
 Author: Mark Kaiser
-Last Modified: 23 November 2021
+Last Modified: 3 December 2021
 OSU email address: kaisemar@oregonstate.edu
 Course number/section:   CS271 Section 400
 Project Number: 6            
@@ -58,11 +58,9 @@ main PROC
 ; Preconditions: N/A
 ; Receives: N/A
 ; Returns: N/A
-; Usage of PUSH, OFFSET, CALL, CMP, JConds referenced from: CS271 Instruction Reference.
-; Usage of CreateOutputFile, Randomize, OpenInputFile, and ReadFromFile referenced from: CS271 Irvine Reference.
+; Usage of PUSH, OFFSET, CALL, CMP, MOV, INVOKE, LOOP, JConds referenced from: CS271 Instruction Reference.
 ; Formatting in accordance with: CS271 Style Guide.
-; Modifies Stack to push parameters, comparison of EDI to check sort progress and ECX for looping over sortList.
-; CreateOutputFile places filehandle address in EAX, EDX is loaded with randArray offset and ECX with ARRAYSIZE*4 for use with ReadFromFile procedure.
+; Modifies Stack to push parameters, calls all other procedures to include: Intro, ReadVal and WriteVal.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	PUSH					OFFSET			programTitle
 	PUSH					OFFSET			instructions
@@ -90,28 +88,25 @@ _getValues:
 	CALL					WriteVal
 
 
-
 	Invoke					ExitProcess,0					; exit to operating system
 main ENDP
 
 Intro PROC
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-; NAME: main
-; This prodcedure calls all other procedures to include stack parameter setup.
+; NAME: Intro
+; This prodcedure calls MACRO mDisplayString and outputs the programTitle and instructions
 ; Preconditions: N/A
-; Receives: N/A
-; Returns: N/A
-; Usage of PUSH, OFFSET, CALL, CMP, JConds referenced from: CS271 Instruction Reference.
-; Usage of CreateOutputFile, Randomize, OpenInputFile, and ReadFromFile referenced from: CS271 Irvine Reference.
+; Receives: Memory address of programTitle and instructions from the stack.
+; Returns: Outputs the strings stored at the referenced addresses.
+; Usage of PUSH, MOV, POP referenced from: CS271 Instruction Reference.
 ; Formatting in accordance with: CS271 Style Guide.
-; Modifies Stack to push parameters, comparison of EDI to check sort progress and ECX for looping over sortList.
-; CreateOutputFile places filehandle address in EAX, EDX is loaded with randArray offset and ECX with ARRAYSIZE*4 for use with ReadFromFile procedure.
+; Modifies Stack to push parameters, sends to MACRO mDisplayString.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 	PUSH					EBP
 	MOV						EBP,			ESP
 	mDisplayString			[EBP+12]					; display programTitle
-	mDisplayString			[EBP+8]						; average instructions
+	mDisplayString			[EBP+8]						; instructions
 	MOV						ESP,			EBP
 	POP						EBP
 	RET						8
@@ -121,16 +116,18 @@ Intro ENDP
 
 ReadVal PROC
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-; NAME: main
+; NAME: ReadVal
 ; This prodcedure calls all other procedures to include stack parameter setup.
 ; Preconditions: N/A
-; Receives: N/A
-; Returns: N/A
-; Usage of PUSH, OFFSET, CALL, CMP, JConds referenced from: CS271 Instruction Reference.
-; Usage of CreateOutputFile, Randomize, OpenInputFile, and ReadFromFile referenced from: CS271 Irvine Reference.
+; Receives: prompt, input buffer offset, error offset, COUNT constant, and result buffer offset.
+; Returns: Outputs user prompt and stores user input as strings in input buffer and LODSB transfers as integers to result buffer.
+; Usage of PUSH, POP, OFFSET, INC, DEC, CMP, JConds referenced from: CS271 Instruction Reference.
 ; Formatting in accordance with: CS271 Style Guide.
-; Modifies Stack to push parameters, comparison of EDI to check sort progress and ECX for looping over sortList.
-; CreateOutputFile places filehandle address in EAX, EDX is loaded with randArray offset and ECX with ARRAYSIZE*4 for use with ReadFromFile procedure.
+; Prompts user for input by passing prompt to mDisplayString MACRO and then the input buffer and buffer size are passed to mGetString MACRO.
+; LODSB is utilized to move a copy into the AL register, where the input value is compared against the upper and lower limits.
+; If a supplied character is outside of these limits a jump to _invalid occurs where ECX is restored and mDisplayString is called to display the warning.
+; If a supplied character is valid, the value in AL is reduced to its integer equivalent value and stored at the current edi address as a value.
+; The EDI address is incremented and continues additional times depending on how many digits the supplied character is.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	PUSH				EBP
 	MOV					EBP,			ESP

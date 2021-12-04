@@ -42,12 +42,15 @@ instructions			BYTE			"Please provide 10 signed integers.",13,10
 						BYTE			"the list of integers, their sum, and their average.",13,10,0
 prompt					BYTE			"Enter a signed integer: ",0
 error					BYTE			"Error: The supplied signed integer is too large, please try again.",13,10,0
-list					BYTE			"You supplied the following numbers: ",13,10,0
-sum						BYTE			"The sum is: ",13,10,0
-average					BYTE			"The rounded average is: ",13,10,0
+listTitle				BYTE			"You supplied the following numbers: ",13,10,0
+sumTitle				BYTE			"The sum is: ",13,10,0
+averageTitle			BYTE			"The rounded average is: ",13,10,0
 goodbye					BYTE			"Thanks for stopping by, good bye.",13,10,0
-result					BYTE			30	DUP(0)
 input					SDWORD			21	DUP(0)
+list					SDWORD			30	DUP(0)
+sum						SDWORD			0
+average					SDWORD			0
+
 
 
 .code
@@ -69,7 +72,7 @@ main PROC
 
 	MOV						ECX,			COUNT
 	MOV						ESI,			OFFSET			input
-	MOV						EDI,			OFFSET			result
+	MOV						EDI,			OFFSET			list
 _getValues:
 	PUSH					EDI
 	PUSH					SIZEOF			input
@@ -80,11 +83,16 @@ _getValues:
 	CALL					ReadVal
 	LOOP					_getValues
 
-	PUSH					OFFSET			input
-	PUSH					OFFSET			result
 	PUSH					OFFSET			sum
-	PUSH					OFFSET			average
 	PUSH					OFFSET			list
+	CALL					getSum
+
+	PUSH					OFFSET			sum
+	PUSH					OFFSET			input
+	PUSH					OFFSET			list
+	PUSH					OFFSET			sumTitle
+	PUSH					OFFSET			averageTitle
+	PUSH					OFFSET			listTitle
 	CALL					WriteVal
 
 
@@ -119,8 +127,8 @@ ReadVal PROC
 ; NAME: ReadVal
 ; This prodcedure calls all other procedures to include stack parameter setup.
 ; Preconditions: N/A
-; Receives: prompt, input buffer offset, error offset, COUNT constant, and result buffer offset.
-; Returns: Outputs user prompt and stores user input as strings in input buffer and LODSB transfers as integers to result buffer.
+; Receives: prompt, input buffer offset, error offset, COUNT constant, and list buffer offset.
+; Returns: Outputs user prompt and stores user input as strings in input buffer and LODSB transfers as integers to list buffer.
 ; Usage of PUSH, POP, OFFSET, INC, DEC, CMP, JConds referenced from: CS271 Instruction Reference.
 ; Formatting in accordance with: CS271 Style Guide.
 ; Prompts user for input by passing prompt to mDisplayString MACRO and then the input buffer and buffer size are passed to mGetString MACRO.
@@ -135,7 +143,7 @@ ReadVal PROC
 	MOV					ESI,			[EBP+12]			; input buffer
 	MOV					EBX,			[EBP+16]			; error
 	MOV					ECX,			[EBP+20]			; COUNT
-	MOV					EDI,			[EBP+28]			; result buffer
+	MOV					EDI,			[EBP+28]			; list buffer
 	mDisplayString		[EBP+8]								; display programTitle
 	mGetString			[EBP+12], [EBP+24]
 
@@ -227,19 +235,55 @@ WriteVal PROC
 	PUSH					EBP
 	MOV						EBP,			ESP
 	mDisplayString			[EBP+8]							; display prompt
-	MOV						EDI,			[EBP+20]		; result
+	MOV						EDI,			[EBP+20]		; list
 
 	mDisplayString			[EBP+12]						; average prompt
 
 	MOV						ESI,			[EBP+24]		; input buffer
 
 	mDisplayString			[EBP+16]						; sum prompt
+	mDisplayString			[EBP+28]						; sum result
 
 	MOV						ESP,			EBP
 	POP						EBP
-	RET						12
+	RET						16
 
 
 WriteVal ENDP
+
+
+getSum PROC
+; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; NAME: getSum
+; This prodcedure calls MACRO mDisplayString and outputs the programTitle and instructions
+; Preconditions: N/A
+; Receives: Memory address of programTitle and instructions from the stack.
+; Returns: Outputs the strings stored at the referenced addresses.
+; Usage of PUSH, MOV, POP referenced from: CS271 Instruction Reference.
+; Formatting in accordance with: CS271 Style Guide.
+; Modifies Stack to push parameters, sends to MACRO mDisplayString.
+; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	PUSH					EBP
+	MOV						EBP,			ESP
+	MOV						EBX,			0
+	MOV						ESI,			[EBP+8]						; list of integers
+	MOV						EDI,			[EBP+12]					; sum memory offset
+	MOV						ECX,			10
+
+_calcSum:
+	LODSD
+	ADD						EBX,			EAX
+	LOOP					_calcSum
+	MOV						[EDI],			EBX
+	MOV						ESP,			EBP
+	POP						EBP
+	RET						8
+
+
+getSum ENDP
+
+
+
 
 END main

@@ -2,7 +2,7 @@ TITLE Project 6     (Proj6_kaisemar.asm)
 
 COMMENT !
 Author: Mark Kaiser
-Last Modified: 3 December 2021
+Last Modified: 4 December 2021
 OSU email address: kaisemar@oregonstate.edu
 Course number/section:   CS271 Section 400
 Project Number: 6            
@@ -87,6 +87,15 @@ _getValues:
 	PUSH					OFFSET			list
 	CALL					getSum
 
+	;PUSH					OFFSET			sum
+	;CALL					stringify
+	;MOV						[sum],			EDX
+
+	PUSH					OFFSET			sum
+	PUSH					OFFSET			average
+	CALL					getAverage
+
+	PUSH					OFFSET			average
 	PUSH					OFFSET			sum
 	PUSH					OFFSET			input
 	PUSH					OFFSET			list
@@ -145,7 +154,7 @@ ReadVal PROC
 	MOV					ECX,			[EBP+20]			; COUNT
 	MOV					EDI,			[EBP+28]			; list buffer
 	mDisplayString		[EBP+8]								; display programTitle
-	mGetString			[EBP+12], [EBP+24]
+	mGetString			[EBP+12],		[EBP+24]
 
 	PUSH				EBP
 	PUSH				ECX
@@ -200,7 +209,6 @@ _convert:
 	CMP					ECX,			0
 	JA					_convert
 	POP					ECX
-	;MOV			EDI,		EBX								; offset to address of array that will hold the ten
 	MOV					[EDI],			EBP
 	ADD					EDI,			4
 	POP					EBP
@@ -238,6 +246,7 @@ WriteVal PROC
 	MOV						EDI,			[EBP+20]		; list
 
 	mDisplayString			[EBP+12]						; average prompt
+	mDisplayString			[EBP+32]						; average result
 
 	MOV						ESI,			[EBP+24]		; input buffer
 
@@ -282,6 +291,70 @@ _calcSum:
 
 
 getSum ENDP
+
+
+getAverage PROC
+; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; NAME: getAverage
+; This prodcedure calls MACRO mDisplayString and outputs the programTitle and instructions
+; Preconditions: N/A
+; Receives: Memory address of programTitle and instructions from the stack.
+; Returns: Outputs the strings stored at the referenced addresses.
+; Usage of PUSH, MOV, POP referenced from: CS271 Instruction Reference.
+; Formatting in accordance with: CS271 Style Guide.
+; Modifies Stack to push parameters, sends to MACRO mDisplayString.
+; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	PUSH					EBP
+	MOV						EBP,			ESP
+	MOV						EBX,			0
+	MOV						EDI,			[EBP+8]					; average memory offset
+	MOV						ESI,			[EBP+12]				; sum memory offset
+	CDQ
+	MOV						EAX,			[ESI]
+	MOV						EBX,			10
+	IDIV					EBX
+	CMP						EDX,			5
+	JGE						_increment
+
+_exit:
+	MOV						[EDI],			EAX						; store value at average memory address
+	MOV						ESP,			EBP
+	POP						EBP
+	RET						8
+
+_increment:
+	INC						EAX
+	JMP						_exit
+
+
+getAverage ENDP
+
+
+stringify PROC
+; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; NAME: stringify
+; This prodcedure calls MACRO mDisplayString and outputs the programTitle and instructions
+; Preconditions: N/A
+; Receives: an integer
+; Returns: the integer in string form
+; Usage of PUSH, MOV, POP referenced from: CS271 Instruction Reference.
+; Formatting in accordance with: CS271 Style Guide.
+; Modifies Stack to push parameters, sends to MACRO mDisplayString.
+; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	PUSH					EBP
+	MOV						EBP,			ESP
+	MOV						EDI,			[EBP+8]						; integer
+	MOV						EAX,			[EDI]
+	ADD						EAX,			LO
+	MOV						EDX,			EAX
+	MOV						ESP,			EBP
+	POP						EBP
+	RET						4
+
+
+stringify ENDP
 
 
 

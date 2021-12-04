@@ -91,7 +91,7 @@ _getValues:
 
 
 
-	Invoke					ExitProcess,0	; exit to operating system
+	Invoke					ExitProcess,0					; exit to operating system
 main ENDP
 
 Intro PROC
@@ -142,13 +142,21 @@ ReadVal PROC
 	mDisplayString		[EBP+8]								; display programTitle
 	mGetString			[EBP+12], [EBP+24]
 
+	PUSH				ECX
+	MOV					ECX,			EAX
+_again:
 	LODSB
 	CMP					AL,				LO
 	JB					_invalid
 	CMP					AL,				HI
 	JA					_invalid
 	SUB					AL,				LO
-	MOV					[EDI],			EAX
+	MOV					[EDI],			AL
+	CMP					ECX,			0
+	ADD					EDI,			1
+	DEC					ECX
+	JA					_again
+	POP					ECX
 	JMP					_exit
 
 _invalid:
@@ -156,7 +164,7 @@ _invalid:
 	mDisplayString		[EBP+16]
 
 _exit:
-	ADD					EDI,			4
+	;ADD					EDI,			4
 	MOV					ESP,			EBP
 	POP					EBP
 	RET					28

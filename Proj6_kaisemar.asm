@@ -42,14 +42,16 @@ instructions			BYTE			"Please provide 10 signed integers.",13,10
 						BYTE			"the list of integers, their sum, and their average.",13,10,0
 prompt					BYTE			"Enter a signed integer: ",0
 error					BYTE			"Error: The supplied signed integer is too large, please try again.",13,10,0
-listTitle				BYTE			"You supplied the following numbers: ",13,10,0
-sumTitle				BYTE			"The sum is: ",13,10,0
-averageTitle			BYTE			"The rounded average is: ",13,10,0
+listTitle				BYTE			"You supplied the following numbers: ",0
+sumTitle				BYTE			"The sum is: ",0
+averageTitle			BYTE			"The rounded average is: ",0
 goodbye					BYTE			"Thanks for stopping by, good bye.",13,10,0
 input					SDWORD			21	DUP(0)
 list					SDWORD			30	DUP(0)
 sum						SDWORD			0
+sumString				BYTE			30	DUP(?)
 average					SDWORD			0
+averageString			BYTE			30	DUP(?)
 
 
 
@@ -87,16 +89,19 @@ _getValues:
 	PUSH					OFFSET			list
 	CALL					getSum
 
-	;PUSH					OFFSET			sum
-	;CALL					stringify
-	;MOV						[sum],			EDX
+	PUSH					OFFSET			sumString
+	PUSH					SIZEOF			sum/2
+	PUSH					OFFSET			sum
+	CALL					stringify
+	CALL					CrLf
 
 	PUSH					OFFSET			sum
 	PUSH					OFFSET			average
 	CALL					getAverage
+	CALL					CrLf
 
-	PUSH					OFFSET			average
-	PUSH					OFFSET			sum
+	PUSH					OFFSET			averageString
+	PUSH					OFFSET			sumString
 	PUSH					OFFSET			input
 	PUSH					OFFSET			list
 	PUSH					OFFSET			sumTitle
@@ -104,6 +109,9 @@ _getValues:
 	PUSH					OFFSET			listTitle
 	CALL					WriteVal
 
+
+	PUSH					OFFSET			goodbye
+	CALL					sayBye
 
 	Invoke					ExitProcess,0					; exit to operating system
 main ENDP
@@ -244,14 +252,17 @@ WriteVal PROC
 	MOV						EBP,			ESP
 	mDisplayString			[EBP+8]							; display prompt
 	MOV						EDI,			[EBP+20]		; list
+	CALL					CrLf
 
 	mDisplayString			[EBP+12]						; average prompt
 	mDisplayString			[EBP+32]						; average result
+	CALL					CrLf
 
 	MOV						ESI,			[EBP+24]		; input buffer
 
 	mDisplayString			[EBP+16]						; sum prompt
 	mDisplayString			[EBP+28]						; sum result
+	CALL					CrLf
 
 	MOV						ESP,			EBP
 	POP						EBP
@@ -327,7 +338,6 @@ _increment:
 	INC						EAX
 	JMP						_exit
 
-
 getAverage ENDP
 
 
@@ -345,18 +355,60 @@ stringify PROC
 
 	PUSH					EBP
 	MOV						EBP,			ESP
-	MOV						EDI,			[EBP+8]						; integer
-	MOV						EAX,			[EDI]
-	ADD						EAX,			LO
-	MOV						EDX,			EAX
+	MOV						ESI,			[EBP+8]						; integer
+	MOV						ECX,			[EBP+12]					; gets size/length of integer
+	MOV						EDI,			[EBP+16]
+	MOV						EAX,			[ESI]
+	MOV						EBX,			10
+	CMP						EAX,			0
+
+_incrementPrep:
+	INC						EDI
+	LOOP					_incrementPrep								; increments in preparation for backward fill of ASCII representation of number.
+	JG						_divide
+	NEG						EAX											; flip to positive for absolute value
+
+_divide:
+	MOV						EDX,			0							; clears for remainder after division
+	DIV						EBX
+	XCHG					EAX,			EDX							; swap remainder and quotient
+	ADD						AL,				'0'
+	MOV						[EDI],			AL							; store character representation of number
+	DEC						EDI											; moves down memory address
+	XCHG					EAX,			EDX							; swap remainder/quotient back
+	INC						ECX
+	CMP						EAX,			0
+	JNZ						_divide										; check if more division required
+
 	MOV						ESP,			EBP
 	POP						EBP
-	RET						4
+	RET						12
 
 
 stringify ENDP
 
 
+sayBye PROC
+; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; NAME: sayBye
+; This prodcedure calls MACRO mDisplayString and outputs the programTitle and instructions
+; Preconditions: N/A
+; Receives: Memory address of programTitle and instructions from the stack.
+; Returns: Outputs the strings stored at the referenced addresses.
+; Usage of PUSH, MOV, POP referenced from: CS271 Instruction Reference.
+; Formatting in accordance with: CS271 Style Guide.
+; Modifies Stack to push parameters, sends to MACRO mDisplayString.
+; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	PUSH					EBP
+	MOV						EBP,			ESP
+	mDisplayString			[EBP+8]						; goodbye
+	MOV						ESP,			EBP
+	POP						EBP
+	RET						4
+
+
+sayBye ENDP
 
 
 END main

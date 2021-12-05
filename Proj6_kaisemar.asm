@@ -52,6 +52,8 @@ sum						SDWORD			0
 sumString				BYTE			30	DUP(?)
 average					SDWORD			0
 averageString			BYTE			30	DUP(?)
+buffer					BYTE			30	DUP(?)
+
 
 
 
@@ -98,11 +100,17 @@ _getValues:
 	PUSH					OFFSET			sum
 	PUSH					OFFSET			average
 	CALL					getAverage
-	CALL					CrLf
 
 	PUSH					OFFSET			averageString
+	PUSH					SIZEOF			average/2
+	PUSH					OFFSET			average
+	CALL					stringify
+	CALL					CrLf
+
+
+	PUSH					OFFSET			buffer
+	PUSH					OFFSET			averageString
 	PUSH					OFFSET			sumString
-	PUSH					OFFSET			input
 	PUSH					OFFSET			list
 	PUSH					OFFSET			sumTitle
 	PUSH					OFFSET			averageTitle
@@ -251,22 +259,36 @@ WriteVal PROC
 	PUSH					EBP
 	MOV						EBP,			ESP
 	mDisplayString			[EBP+8]							; display prompt
-	MOV						EDI,			[EBP+20]		; list
+	MOV						ESI,			[EBP+20]		; list
+	MOV						ECX,			COUNT
+	MOV						EDI,			[EBP+32]		; buffer
+_outputString:
+	PUSH					ECX
+	ADD						EDI,				4
+	PUSH					EDI								; buffer
+	PUSH					3								; size
+	PUSH					ESI
+	CALL					stringify
+	POP						ECX
+	MOV						EDX,			EDI
+	INC						EDX
+	mDisplayString			EDX
+	ADD						ESI,				4
+	LOOP					_outputString
 	CALL					CrLf
 
 	mDisplayString			[EBP+12]						; average prompt
-	mDisplayString			[EBP+32]						; average result
+	mDisplayString			[EBP+28]						; average result
 	CALL					CrLf
 
-	MOV						ESI,			[EBP+24]		; input buffer
 
 	mDisplayString			[EBP+16]						; sum prompt
-	mDisplayString			[EBP+28]						; sum result
+	mDisplayString			[EBP+24]						; sum result
 	CALL					CrLf
 
 	MOV						ESP,			EBP
 	POP						EBP
-	RET						16
+	RET						20
 
 
 WriteVal ENDP

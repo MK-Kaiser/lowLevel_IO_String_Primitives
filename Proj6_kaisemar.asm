@@ -46,6 +46,7 @@ listTitle				BYTE			"You supplied the following numbers: ",0
 sumTitle				BYTE			"The sum is: ",0
 averageTitle			BYTE			"The rounded average is: ",0
 goodbye					BYTE			"Thanks for stopping by, good bye.",13,10,0
+delimiter				BYTE			", ",0
 input					SDWORD			21	DUP(0)
 list					SDWORD			30	DUP(0)
 sum						SDWORD			0
@@ -107,7 +108,7 @@ _getValues:
 	CALL					stringify
 	CALL					CrLf
 
-
+	PUSH					OFFSET			delimiter
 	PUSH					OFFSET			buffer
 	PUSH					OFFSET			averageString
 	PUSH					OFFSET			sumString
@@ -273,6 +274,10 @@ _outputString:
 	MOV						EDX,			EDI
 	INC						EDX
 	mDisplayString			EDX
+	PUSH					EDX
+	MOV						EDX,			[EBP+36]
+	mDisplayString			EDX								; delimiter
+	POP						EDX
 	ADD						ESI,				4
 	LOOP					_outputString
 	CALL					CrLf

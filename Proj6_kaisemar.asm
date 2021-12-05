@@ -39,7 +39,7 @@ programTitle			BYTE			"Project 6: Custom low level input/ouput procedures.",13,1
 instructions			BYTE			"Please provide 10 signed integers.",13,10
 						BYTE			"Each less than the 32 bit limit.",13,10
 						BYTE			"Once all 10 valid signed integers have been input the following will be displayed: ",13,10
-						BYTE			"the list of integers, their sum, and their average.",13,10,0
+						BYTE			"the list of integers, the sum, and the rounded average.",13,10,0
 prompt					BYTE			"Enter a signed integer: ",0
 error					BYTE			"Error: The supplied signed integer is too large, please try again.",13,10,0
 listTitle				BYTE			"You supplied the following numbers: ",0
@@ -50,10 +50,8 @@ delimiter				BYTE			", ",0
 input					SDWORD			21	DUP(0)
 list					SDWORD			30	DUP(0)
 sum						SDWORD			0
-sumString				BYTE			30	DUP(?)
 average					SDWORD			0
-averageString			BYTE			30	DUP(?)
-buffer					BYTE			30	DUP(?)
+buffer					SDWORD			30	DUP(?)
 
 
 
@@ -87,6 +85,7 @@ _getValues:
 	PUSH					OFFSET			prompt			; use same prompt string each time
 	CALL					ReadVal
 	LOOP					_getValues
+	CALL					CrLf
 
 	PUSH					OFFSET			sum
 	PUSH					OFFSET			list
@@ -105,6 +104,7 @@ _getValues:
 	PUSH					OFFSET			averageTitle
 	PUSH					OFFSET			listTitle
 	CALL					WriteVal
+	CALL					CrLf
 
 
 	PUSH					OFFSET			goodbye
@@ -128,6 +128,7 @@ Intro PROC
 	PUSH					EBP
 	MOV						EBP,			ESP
 	mDisplayString			[EBP+12]					; display programTitle
+	CALL					CrLf
 	mDisplayString			[EBP+8]						; instructions
 	MOV						ESP,			EBP
 	POP						EBP
@@ -273,17 +274,6 @@ _skipDelim:
 	LOOP					_outputString
 	CALL					CrLf
 
-	mDisplayString			[EBP+12]						; average prompt
-	MOV						ESI,			[EBP+28]		; average
-	MOV						ECX,			3
-	MOV						EDI,			[EBP+32]
-	PUSH					EDI
-	PUSH					ECX
-	PUSH					ESI
-	CALL					stringify
-	INC						EDI
-	mDisplayString			EDI						; average result
-	CALL					CrLf
 
 	mDisplayString			[EBP+16]						; sum prompt
 	MOV						ESI,			[EBP+24]		; sum
@@ -296,6 +286,20 @@ _skipDelim:
 	INC						EDI
 	mDisplayString			EDI								; sum result
 	CALL					CrLf
+
+
+	mDisplayString			[EBP+12]						; average prompt
+	MOV						ESI,			[EBP+28]		; average
+	MOV						ECX,			3
+	MOV						EDI,			[EBP+32]
+	PUSH					EDI
+	PUSH					ECX
+	PUSH					ESI
+	CALL					stringify
+	INC						EDI
+	mDisplayString			EDI						; average result
+	CALL					CrLf
+
 
 	MOV						ESP,			EBP
 	POP						EBP

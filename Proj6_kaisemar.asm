@@ -92,26 +92,20 @@ _getValues:
 	PUSH					OFFSET			list
 	CALL					getSum
 
-	PUSH					OFFSET			sumString
-	PUSH					SIZEOF			sum/2
-	PUSH					OFFSET			sum
-	CALL					stringify
-	CALL					CrLf
+	;PUSH					OFFSET			sum
+	;PUSH					OFFSET			average
+	;CALL					getAverage
 
-	PUSH					OFFSET			sum
-	PUSH					OFFSET			average
-	CALL					getAverage
-
-	PUSH					OFFSET			averageString
-	PUSH					SIZEOF			average/2
-	PUSH					OFFSET			average
-	CALL					stringify
-	CALL					CrLf
+	;PUSH					OFFSET			averageString
+	;PUSH					SIZEOF			average/2
+	;PUSH					OFFSET			average
+	;CALL					stringify
+	;CALL					CrLf
 
 	PUSH					OFFSET			delimiter
 	PUSH					OFFSET			buffer
 	PUSH					OFFSET			averageString
-	PUSH					OFFSET			sumString
+	PUSH					OFFSET			sum
 	PUSH					OFFSET			list
 	PUSH					OFFSET			sumTitle
 	PUSH					OFFSET			averageTitle
@@ -286,17 +280,25 @@ _skipDelim:
 	CALL					CrLf
 
 	mDisplayString			[EBP+12]						; average prompt
-	mDisplayString			[EBP+28]						; average result
+	;mDisplayString			[EBP+28]						; average result
 	CALL					CrLf
 
 
 	mDisplayString			[EBP+16]						; sum prompt
-	mDisplayString			[EBP+24]						; sum result
+	MOV						ESI,			[EBP+24]		; sum
+	MOV						ECX,			3
+	MOV						EDI,			[EBP+32]		; buffer
+	PUSH					EDI
+	PUSH					ECX
+	PUSH					ESI
+	CALL					stringify
+	INC						EDI
+	mDisplayString			EDI								; sum result
 	CALL					CrLf
 
 	MOV						ESP,			EBP
 	POP						EBP
-	RET						20
+	RET						40
 
 
 WriteVal ENDP

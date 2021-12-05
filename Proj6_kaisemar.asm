@@ -274,9 +274,12 @@ _outputString:
 	MOV						EDX,			EDI
 	INC						EDX
 	mDisplayString			EDX
+	CMP						ECX,			1
+	JE						_skipDelim
 	PUSH					EDX
 	MOV						EDX,			[EBP+36]
 	mDisplayString			EDX								; delimiter
+_skipDelim:
 	POP						EDX
 	ADD						ESI,				4
 	LOOP					_outputString

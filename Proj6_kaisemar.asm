@@ -53,10 +53,9 @@ input					SDWORD			30	DUP(0)
 bufferList				SDWORD			30	DUP(0)
 bufferSum				SDWORD			30	DUP(0)
 bufferAverage			SDWORD			30	DUP(0)
-sum						SDWORD			0
-average					SDWORD			0
+sum						SDWORD			8  DUP(0)
+average					SDWORD			8  DUP(0)
 buffer					SDWORD			30	DUP(?)
-
 
 
 
@@ -177,10 +176,10 @@ ReadVal PROC
 _positiveCheck:
 	CMP					EDX,			2Bh
 	JNE					_negativeCheck
-	MOV					EBP,			1
 	LODSB
 	DEC					ECX
 	MOV					EDX,			EAX
+	JMP					_initialize
 
 _negativeCheck:
 	CMP					EDX,			2Dh
@@ -189,14 +188,17 @@ _negativeCheck:
 	LODSB
 	DEC					ECX
 	MOV					EDX,			EAX
+	JMP					_initialize
 
 _noSign:
-	MOV					EBP,			0
 	CMP					EDX,			LO
 	JB					_invalid
 	CMP					EDX,			HI
 	JA					_invalid
 
+_initialize:
+	PUSH				EBP						; store negative/positive factor
+	MOV					EBP,			0
 	MOV					EBX,			10
 _convert:
 	MOV					DL,			AL
@@ -219,6 +221,10 @@ _convert:
 	LODSB
 	CMP					ECX,			0
 	JA					_convert
+	POP					EAX
+	CMP					EAX,			-1
+	JE					_negate
+_resume:
 	POP					ECX
 	MOV					[EDI],			EBP
 	POP					EBP
@@ -235,6 +241,10 @@ _exit:
 	MOV					ESP,			EBP
 	POP					EBP
 	RET					28
+
+_negate:
+	NEG					EBP
+	JMP					_resume
 	
 ReadVal ENDP
 
@@ -337,13 +347,19 @@ getSum PROC
 
 _calcSum:
 	LODSD
+	CMP						EAX,			0
+	JB						_subtract
 	ADD						EBX,			EAX
+_resume:
 	LOOP					_calcSum
 	MOV						[EDI],			EBX
 	MOV						ESP,			EBP
 	POP						EBP
 	RET						8
 
+_subtract:
+	SUB						EBX,			EAX
+	JMP						_resume
 
 getSum ENDP
 
@@ -367,7 +383,7 @@ getAverage PROC
 	MOV						ESI,			[EBP+12]				; sum memory offset
 	CDQ
 	MOV						EAX,			[ESI]
-	MOV						EBX,			10
+	MOV						EBX,			COUNT
 	IDIV					EBX
 	CMP						EDX,			5
 	JGE						_increment
@@ -421,7 +437,7 @@ _divide:
 	DEC						EDI											; moves down memory address
 	XCHG					EAX,			EDX							; swap remainder/quotient back
 	INC						ECX
-	CMP						EAX,			0
+	CMP						AL,			0
 	JNZ						_divide										; check if more division required
 
 	MOV						ESP,			EBP

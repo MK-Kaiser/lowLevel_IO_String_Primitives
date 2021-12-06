@@ -7,7 +7,9 @@ OSU email address: kaisemar@oregonstate.edu
 Course number/section:   CS271 Section 400
 Project Number: 6            
 Due Date: 5 December 2021
-Description: ...
+Description: This program takes in an array of string characters and stores them as integers via ReadVal and mGetString.
+getSum and getAverage then perform calculations on the stored integers and then WriteVal is called to convert these integers back to string format.
+The stringify procedure helps WriteVal by handling the conversion portion of this process. Finally mDisplayString is called everytime a string is ready to be printed.
 !
 
 INCLUDE Irvine32.inc
@@ -28,7 +30,7 @@ mDisplayString			MACRO				string
 	CALL				WriteString
 ENDM
 
-COUNT	=	10
+COUNT	=	3
 LO		=   30h
 HI		=	39h
 
@@ -47,8 +49,10 @@ sumTitle				BYTE			"The sum is: ",0
 averageTitle			BYTE			"The rounded average is: ",0
 goodbye					BYTE			"Thanks for stopping by, good bye.",13,10,0
 delimiter				BYTE			", ",0
-input					SDWORD			21	DUP(0)
-list					SDWORD			30	DUP(0)
+input					SDWORD			30	DUP(0)
+bufferList				SDWORD			30	DUP(0)
+bufferSum				SDWORD			30	DUP(0)
+bufferAverage			SDWORD			30	DUP(0)
 sum						SDWORD			0
 average					SDWORD			0
 buffer					SDWORD			30	DUP(?)
@@ -75,7 +79,7 @@ main PROC
 
 	MOV						ECX,			COUNT
 	MOV						ESI,			OFFSET			input
-	MOV						EDI,			OFFSET			list
+	MOV						EDI,			OFFSET			bufferList
 _getValues:
 	PUSH					EDI
 	PUSH					SIZEOF			input
@@ -88,18 +92,20 @@ _getValues:
 	CALL					CrLf
 
 	PUSH					OFFSET			sum
-	PUSH					OFFSET			list
+	PUSH					OFFSET			bufferList
 	CALL					getSum
 
 	PUSH					OFFSET			sum
 	PUSH					OFFSET			average
 	CALL					getAverage
 
+	PUSH					OFFSET			bufferAverage
+	PUSH					OFFSET			bufferSum
 	PUSH					OFFSET			delimiter
 	PUSH					OFFSET			buffer
 	PUSH					OFFSET			average
 	PUSH					OFFSET			sum
-	PUSH					OFFSET			list
+	PUSH					OFFSET			bufferList
 	PUSH					OFFSET			sumTitle
 	PUSH					OFFSET			averageTitle
 	PUSH					OFFSET			listTitle
@@ -166,40 +172,39 @@ ReadVal PROC
 	PUSH				ECX
 	MOV					ECX,			EAX
 	LODSB
-	MOV					DL,				AL
+	MOV					EDX,			EAX
 
 _positiveCheck:
-	CMP					DL,				2Bh
+	CMP					EDX,			2Bh
 	JNE					_negativeCheck
 	MOV					EBP,			1
 	LODSB
 	DEC					ECX
-	MOV					DL,				AL
+	MOV					EDX,			EAX
 
 _negativeCheck:
-	CMP					DL,				2Dh
+	CMP					EDX,			2Dh
 	JNE					_noSign
 	MOV					EBP,			-1
 	LODSB
 	DEC					ECX
-	MOV					DL,				AL
+	MOV					EDX,			EAX
 
 _noSign:
 	MOV					EBP,			0
-	CMP					DL,				LO
+	CMP					EDX,			LO
 	JB					_invalid
-	CMP					DL,				HI
+	CMP					EDX,			HI
 	JA					_invalid
 
 	MOV					EBX,			10
 _convert:
-	MOV					EDX,			EAX
-	CMP					DL,				LO
+	MOV					DL,			AL
+	CMP					DL,			LO
 	JB					_exit
-	CMP					DL,				HI
+	CMP					DL,			HI
 	JA					_exit
-	SUB					AL,				LO
-	SUB					DL,				LO
+	SUB					EDX,			LO
 
 
 	PUSH				EDX
@@ -208,7 +213,7 @@ _convert:
 	POP					EDX
 	JO					_invalid						; check for overflow
 	MOV					EBP,			EAX
-	ADD					EBP,			EDX				; restore pointer
+	ADD					EBP,			EDX				
 	JO					_invalid						; check for overflow
 	DEC					ECX
 	LODSB
@@ -216,8 +221,8 @@ _convert:
 	JA					_convert
 	POP					ECX
 	MOV					[EDI],			EBP
-	ADD					EDI,			4
 	POP					EBP
+	ADD					EDI,			4
 	JMP					_exit
 
 _invalid:
@@ -278,7 +283,7 @@ _skipDelim:
 	mDisplayString			[EBP+16]						; sum prompt
 	MOV						ESI,			[EBP+24]		; sum
 	MOV						ECX,			3
-	MOV						EDI,			[EBP+32]		; buffer
+	MOV						EDI,			[EBP+40]		; bufferSum
 	PUSH					EDI
 	PUSH					ECX
 	PUSH					ESI
@@ -291,7 +296,7 @@ _skipDelim:
 	mDisplayString			[EBP+12]						; average prompt
 	MOV						ESI,			[EBP+28]		; average
 	MOV						ECX,			3
-	MOV						EDI,			[EBP+32]
+	MOV						EDI,			[EBP+44]		; bufferAverage
 	PUSH					EDI
 	PUSH					ECX
 	PUSH					ESI

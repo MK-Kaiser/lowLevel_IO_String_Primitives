@@ -30,7 +30,7 @@ mDisplayString			MACRO				string
 	CALL				WriteString
 ENDM
 
-COUNT	=	3
+COUNT	=	10
 LO		=   30h
 HI		=	39h
 
@@ -67,9 +67,9 @@ main PROC
 ; Preconditions: N/A
 ; Receives: N/A
 ; Returns: N/A
-; Usage of PUSH, OFFSET, CALL, CMP, MOV, INVOKE, LOOP, JConds referenced from: CS271 Instruction Reference.
+; Usage of PUSH, OFFSET, CALL, CMP, MOV, INVOKE, LOOP, SIZEOF, JConds referenced from: CS271 Instruction Reference.
 ; Formatting in accordance with: CS271 Style Guide.
-; Modifies Stack to push parameters, calls all other procedures to include: Intro, ReadVal and WriteVal.
+; Modifies Stack to push parameters, calls all other procedures to include: Intro, getSum, getAverage, sayBye, ReadVal and WriteVal.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	PUSH					OFFSET			programTitle
 	PUSH					OFFSET			instructions
@@ -84,7 +84,7 @@ _getValues:
 	PUSH					SIZEOF			input
 	PUSH					ECX								; resumes with previous ECX count
 	PUSH					OFFSET			error			; use same error string each time
-	PUSH					ESI								; resume with previous buffer offset
+	PUSH					ESI								; resume with returned buffer offset
 	PUSH					OFFSET			prompt			; use same prompt string each time
 	CALL					ReadVal
 	LOOP					_getValues
@@ -111,7 +111,6 @@ _getValues:
 	CALL					WriteVal
 	CALL					CrLf
 
-
 	PUSH					OFFSET			goodbye
 	CALL					sayBye
 
@@ -132,9 +131,9 @@ Intro PROC
 
 	PUSH					EBP
 	MOV						EBP,			ESP
-	mDisplayString			[EBP+12]					; display programTitle
+	mDisplayString			[EBP+12]						; display programTitle
 	CALL					CrLf
-	mDisplayString			[EBP+8]						; instructions
+	mDisplayString			[EBP+8]							; instructions
 	MOV						ESP,			EBP
 	POP						EBP
 	RET						8
@@ -149,14 +148,16 @@ ReadVal PROC
 ; Preconditions: N/A
 ; Receives: prompt, input buffer offset, error offset, COUNT constant, and list buffer offset.
 ; Returns: Outputs user prompt and stores user input as strings in input buffer and LODSB transfers as integers to list buffer.
-; Usage of PUSH, POP, OFFSET, INC, DEC, CMP, JConds referenced from: CS271 Instruction Reference.
+; Usage of PUSH, POP, OFFSET, INC, DEC, CMP, JConds, LODSB, NEG, SUB, IMUL referenced from: CS271 Instruction Reference.
 ; Formatting in accordance with: CS271 Style Guide.
 ; Prompts user for input by passing prompt to mDisplayString MACRO and then the input buffer and buffer size are passed to mGetString MACRO.
 ; LODSB is utilized to move a copy into the AL register, where the input value is compared against the upper and lower limits.
 ; If a supplied character is outside of these limits a jump to _invalid occurs where ECX is restored and mDisplayString is called to display the warning.
 ; If a supplied character is valid, the value in AL is reduced to its integer equivalent value and stored at the current edi address as a value.
-; The EDI address is incremented and continues additional times depending on how many digits the supplied character is.
+; The EDI address is incremented and continues additional times depending on how many digits the supplied character is. 
+; Checks if value is positive or negative and applies '-' character separately for negative values. Leverages MACROs mDisplayString and mGetString.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 	PUSH				EBP
 	MOV					EBP,			ESP
 	MOV					EDX,			[EBP+8]				; prompt
@@ -170,11 +171,11 @@ ReadVal PROC
 	PUSH				EBP
 	PUSH				ECX
 	MOV					ECX,			EAX
-	LODSB
-	MOV					EDX,			EAX
+	LODSB													; loads first value to AL
+	MOV					EDX,			EAX					
 
 _positiveCheck:
-	CMP					EDX,			2Bh
+	CMP					EDX,			2Bh					; checks for '+' sign
 	JNE					_negativeCheck
 	LODSB
 	DEC					ECX
@@ -182,9 +183,9 @@ _positiveCheck:
 	JMP					_initialize
 
 _negativeCheck:
-	CMP					EDX,			2Dh
+	CMP					EDX,			2Dh					; checks for '-' sign
 	JNE					_noSign
-	MOV					EBP,			-1
+	MOV					EBP,			-1					; flag to identify a negative value
 	LODSB
 	DEC					ECX
 	MOV					EDX,			EAX
@@ -197,43 +198,43 @@ _noSign:
 	JA					_invalid
 
 _initialize:
-	PUSH				EBP						; store negative/positive factor
+	PUSH				EBP									; store negative/positive factor for later
 	MOV					EBP,			0
 	MOV					EBX,			10
 _convert:
-	MOV					DL,			AL
-	CMP					DL,			LO
+	MOV					DL,				AL
+	CMP					DL,				LO
 	JB					_exit
-	CMP					DL,			HI
+	CMP					DL,				HI
 	JA					_exit
-	SUB					EDX,			LO
+	SUB					EDX,			LO					; convert
 
 
 	PUSH				EDX
 	MOV					EAX,			EBP
 	IMUL				EBX
 	POP					EDX
-	JO					_invalid						; check for overflow
+	JO					_invalid							; check for overflow
 	MOV					EBP,			EAX
 	ADD					EBP,			EDX				
-	JO					_invalid						; check for overflow
+	JO					_invalid							; check for overflow
 	DEC					ECX
 	LODSB
 	CMP					ECX,			0
 	JA					_convert
 	POP					EAX
-	CMP					EAX,			-1
+	CMP					EAX,			-1					; checks for negative factor
 	JE					_negate
 _resume:
 	POP					ECX
-	MOV					[EDI],			EBP
+	MOV					[EDI],			EBP					; store
 	POP					EBP
 	ADD					EDI,			4
 	JMP					_exit
 
 _invalid:
 	POP					ECX
-	INC					ECX								; input didnt count
+	INC					ECX									; input didnt count
 	POP					EBP
 	mDisplayString		[EBP+16]
 
@@ -243,7 +244,7 @@ _exit:
 	RET					28
 
 _negate:
-	NEG					EBP
+	NEG					EBP									; makes a negative value positive
 	JMP					_resume
 	
 ReadVal ENDP
@@ -254,13 +255,12 @@ WriteVal PROC
 ; NAME: main
 ; This prodcedure calls all other procedures to include stack parameter setup.
 ; Preconditions: N/A
-; Receives: N/A
-; Returns: N/A
-; Usage of PUSH, OFFSET, CALL, CMP, JConds referenced from: CS271 Instruction Reference.
-; Usage of CreateOutputFile, Randomize, OpenInputFile, and ReadFromFile referenced from: CS271 Irvine Reference.
+; Receives: Display prompt, list, COUNT constant, and buffer.
+; Returns: Outputs list, sum and average.
+; Usage of PUSH, POP, INC, DEC, OFFSET, CALL, CMP, ADD, LOOP, JConds referenced from: CS271 Instruction Reference.
 ; Formatting in accordance with: CS271 Style Guide.
-; Modifies Stack to push parameters, comparison of EDI to check sort progress and ECX for looping over sortList.
-; CreateOutputFile places filehandle address in EAX, EDX is loaded with randArray offset and ECX with ARRAYSIZE*4 for use with ReadFromFile procedure.
+; Modifies Stack to push parameters, stack is passed a memory offset for the display prompt, list, and buffer.
+; Leverages sub procedure stringify to convert characters to integers and uses MACRO mDisplayString to output.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 	PUSH					EBP
@@ -271,7 +271,7 @@ WriteVal PROC
 	MOV						EDI,			[EBP+32]		; buffer
 _outputString:
 	PUSH					ECX
-	ADD						EDI,				4
+	ADD						EDI,			4
 	PUSH					EDI								; buffer
 	PUSH					3								; size
 	PUSH					ESI
@@ -281,7 +281,7 @@ _outputString:
 	INC						EDX
 	mDisplayString			EDX
 	CMP						ECX,			1
-	JE						_skipDelim
+	JE						_skipDelim						; avoids extra comma after last value
 	PUSH					EDX
 	MOV						EDX,			[EBP+36]
 	mDisplayString			EDX								; delimiter
@@ -290,7 +290,6 @@ _skipDelim:
 	ADD						ESI,				4
 	LOOP					_outputString
 	CALL					CrLf
-
 
 	mDisplayString			[EBP+16]						; sum prompt
 	MOV						ESI,			[EBP+24]		; sum
@@ -304,7 +303,6 @@ _skipDelim:
 	mDisplayString			EDI								; sum result
 	CALL					CrLf
 
-
 	mDisplayString			[EBP+12]						; average prompt
 	MOV						ESI,			[EBP+28]		; average
 	MOV						ECX,			3
@@ -314,14 +312,12 @@ _skipDelim:
 	PUSH					ESI
 	CALL					stringify
 	INC						EDI
-	mDisplayString			EDI						; average result
+	mDisplayString			EDI								; average result
 	CALL					CrLf
-
 
 	MOV						ESP,			EBP
 	POP						EBP
 	RET						40
-
 
 WriteVal ENDP
 
@@ -329,13 +325,14 @@ WriteVal ENDP
 getSum PROC
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; NAME: getSum
-; This prodcedure calls MACRO mDisplayString and outputs the programTitle and instructions
+; This prodcedure calculates the sum.
 ; Preconditions: N/A
-; Receives: Memory address of programTitle and instructions from the stack.
-; Returns: Outputs the strings stored at the referenced addresses.
-; Usage of PUSH, MOV, POP referenced from: CS271 Instruction Reference.
+; Receives: Memory address of the list of integers and sum.
+; Returns: The sum stored at the provided memory address.
+; Usage of PUSH, MOV, POP, LOOP, SUB, JMP, LODSD referenced from: CS271 Instruction Reference.
 ; Formatting in accordance with: CS271 Style Guide.
-; Modifies Stack to push parameters, sends to MACRO mDisplayString.
+; Modifies Stack to push parameters, iterates through list of integers and adds each value to sum.
+; If negative subtracts instead.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 	PUSH					EBP
@@ -348,11 +345,11 @@ getSum PROC
 _calcSum:
 	LODSD
 	CMP						EAX,			0
-	JB						_subtract
+	JB						_subtract									; negative check
 	ADD						EBX,			EAX
 _resume:
 	LOOP					_calcSum
-	MOV						[EDI],			EBX
+	MOV						[EDI],			EBX							; store
 	MOV						ESP,			EBP
 	POP						EBP
 	RET						8
@@ -367,13 +364,14 @@ getSum ENDP
 getAverage PROC
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; NAME: getAverage
-; This prodcedure calls MACRO mDisplayString and outputs the programTitle and instructions
+; This prodcedure calculates the average.
 ; Preconditions: N/A
-; Receives: Memory address of programTitle and instructions from the stack.
-; Returns: Outputs the strings stored at the referenced addresses.
-; Usage of PUSH, MOV, POP referenced from: CS271 Instruction Reference.
+; Receives: Memory address of average and sum from the stack.
+; Returns: Stores average at memory address.
+; Usage of PUSH, MOV, POP, CDQ, Jcond, IDIV, CMP referenced from: CS271 Instruction Reference.
 ; Formatting in accordance with: CS271 Style Guide.
-; Modifies Stack to push parameters, sends to MACRO mDisplayString.
+; Modifies Stack to push parameters, divides sum by COUNT. Handles negative sum separately.
+; Rounds up .5 values.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 	PUSH					EBP
@@ -384,7 +382,7 @@ getAverage PROC
 	CDQ
 	MOV						EAX,			[ESI]
 	CMP						EAX,			0
-	JL						_negative
+	JL						_negative								; negative check
 	MOV						EBX,			COUNT
 	IDIV					EBX
 	CMP						EDX,			5
@@ -396,7 +394,7 @@ _exit:
 	POP						EBP
 	RET						8
 
-_increment:
+_increment:															; round up
 	INC						EAX
 	JMP						_exit
 
@@ -409,7 +407,7 @@ _negative:
 	NEG						EAX
 	JMP						_exit
 
-_increase:
+_increase:															; round up for negative
 	INC						EAX
 	NEG						EAX
 	JMP						_exit
@@ -420,19 +418,19 @@ getAverage ENDP
 stringify PROC
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; NAME: stringify
-; This prodcedure calls MACRO mDisplayString and outputs the programTitle and instructions
+; A helper procedure that converts an integer into a string.
 ; Preconditions: N/A
-; Receives: an integer
-; Returns: the integer in string form
-; Usage of PUSH, MOV, POP referenced from: CS271 Instruction Reference.
+; Receives: An integer.
+; Returns: The equivalent integer in string form.
+; Usage of PUSH, MOV, POP, CMP, JL, INC, DEC, LOOP, XCHG, NEG referenced from: CS271 Instruction Reference.
 ; Formatting in accordance with: CS271 Style Guide.
 ; Modifies Stack to push parameters, sends to MACRO mDisplayString.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 	PUSH					EBP
 	MOV						EBP,			ESP
-	MOV						ESI,			[EBP+8]						; integer
-	MOV						ECX,			[EBP+12]					; gets size/length of integer
+	MOV						ESI,			[EBP+8]					; integer
+	MOV						ECX,			[EBP+12]				; gets size/length of integer
 	MOV						EDI,			[EBP+16]
 	MOV						EBX,			10
 	MOV						EAX,			[ESI]
@@ -441,21 +439,21 @@ stringify PROC
 
 _incrementPrep:
 	INC						EDI
-	LOOP					_incrementPrep								; increments in preparation for backward fill of ASCII representation of number.
+	LOOP					_incrementPrep							; increments in preparation for backward fill of ASCII representation of number.
 
 _divide:
-	MOV						EDX,			0							; clears for remainder after division
+	MOV						EDX,			0						; clears for remainder after division
 	DIV						EBX
-	XCHG					EAX,			EDX							; swap remainder and quotient
+	XCHG					EAX,			EDX						; swap remainder and quotient
 	ADD						AL,				'0'
-	MOV						[EDI],			AL							; store character representation of number
-	DEC						EDI											; moves down memory address
-	XCHG					EAX,			EDX							; swap remainder/quotient back
+	MOV						[EDI],			AL						; store character representation of number
+	DEC						EDI										; moves down memory address
+	XCHG					EAX,			EDX						; swap remainder/quotient back
 	INC						ECX
 	CMP						AL,			0
-	JNZ						_divide										; check if more division required
-	POP						EDX											; grab negative sign from stack
-	CMP						DL,				2Dh
+	JNZ						_divide									; check if more division required
+	POP						EDX										; grab negative sign from stack
+	CMP						DL,				2Dh						; negative check
 	JNE						_skip
 	MOV						[EDI],			DL
 	DEC						EDI
@@ -465,10 +463,9 @@ _skip:
 	RET						12
 
 _negative:
-	NEG						EAX											; flip to positive for absolute value
-	PUSH					'-'											; place the negative sign
+	NEG						EAX										; flip to positive for absolute value
+	PUSH					'-'										; place the negative sign
 	DEC						EDI
-	;INC						EDI
 	JMP						_incrementPrep
 
 stringify ENDP
@@ -477,9 +474,9 @@ stringify ENDP
 sayBye PROC
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; NAME: sayBye
-; This prodcedure calls MACRO mDisplayString and outputs the programTitle and instructions
+; This prodcedure calls MACRO mDisplayString and outputs a goodbye message.
 ; Preconditions: N/A
-; Receives: Memory address of programTitle and instructions from the stack.
+; Receives: Memory address of goodbye from the stack.
 ; Returns: Outputs the strings stored at the referenced addresses.
 ; Usage of PUSH, MOV, POP referenced from: CS271 Instruction Reference.
 ; Formatting in accordance with: CS271 Style Guide.
@@ -488,11 +485,10 @@ sayBye PROC
 
 	PUSH					EBP
 	MOV						EBP,			ESP
-	mDisplayString			[EBP+8]						; goodbye
+	mDisplayString			[EBP+8]									; goodbye
 	MOV						ESP,			EBP
 	POP						EBP
 	RET						4
-
 
 sayBye ENDP
 

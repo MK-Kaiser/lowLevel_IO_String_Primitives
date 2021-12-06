@@ -15,11 +15,11 @@ The stringify procedure helps WriteVal by handling the conversion portion of thi
 INCLUDE Irvine32.inc
 
 ; two macros: mGetString and mDisplayString
-mGetString				MACRO			buffer, size
+mGetString				MACRO				buffer, size
 	PUSH				ECX
 	PUSH				EDX
-	MOV					EDX,			buffer
-	MOV					ECX,			size
+	MOV					EDX,				buffer
+	MOV					ECX,				size
 	CALL				ReadString
 	POP					EDX
 	POP					ECX
@@ -36,26 +36,26 @@ HI		=	39h
 
 .data
 
-programTitle			BYTE			"Project 6: Custom low level input/ouput procedures.",13,10
-						BYTE			"Author: Mark Kaiser",13,10,0
-instructions			BYTE			"Please provide 10 signed integers.",13,10
-						BYTE			"Each less than the 32 bit limit.",13,10
-						BYTE			"Once all 10 valid signed integers have been input the following will be displayed: ",13,10
-						BYTE			"the list of integers, the sum, and the rounded average.",13,10,0
-prompt					BYTE			"Enter a signed integer: ",0
-error					BYTE			"Error: The supplied signed integer is too large, please try again.",13,10,0
-listTitle				BYTE			"You supplied the following numbers: ",0
-sumTitle				BYTE			"The sum is: ",0
-averageTitle			BYTE			"The rounded average is: ",0
-goodbye					BYTE			"Thanks for stopping by, good bye.",13,10,0
-delimiter				BYTE			", ",0
-input					SDWORD			30	DUP(0)
-bufferList				SDWORD			30	DUP(0)
-bufferSum				SDWORD			30	DUP(0)
-bufferAverage			SDWORD			30	DUP(0)
-sum						SDWORD			8  DUP(0)
-average					SDWORD			8  DUP(0)
-buffer					SDWORD			30	DUP(?)
+programTitle			BYTE				"Project 6: Custom low level input/ouput procedures.",13,10
+						BYTE				"Author: Mark Kaiser",13,10,0
+instructions			BYTE				"Please provide 10 signed integers.",13,10
+						BYTE				"Each less than the 32 bit limit.",13,10
+						BYTE				"Once all 10 valid signed integers have been input the following will be displayed: ",13,10
+						BYTE				"the list of integers, the sum, and the rounded average.",13,10,0
+prompt					BYTE				"Enter a signed integer: ",0
+error					BYTE				"Error: The supplied signed integer is too large, please try again.",13,10,0
+listTitle				BYTE				"You supplied the following numbers: ",0
+sumTitle				BYTE				"The sum is: ",0
+averageTitle			BYTE				"The rounded average is: ",0
+goodbye					BYTE				"Thanks for stopping by.",13,10,0
+delimiter				BYTE				", ",0
+input					SDWORD				30	DUP(0)
+bufferList				SDWORD				30	DUP(0)
+bufferSum				SDWORD				30	DUP(0)
+bufferAverage			SDWORD				30	DUP(0)
+sum						SDWORD				8  DUP(0)
+average					SDWORD				8  DUP(0)
+buffer					SDWORD				30	DUP(?)
 
 
 
@@ -383,6 +383,8 @@ getAverage PROC
 	MOV						ESI,			[EBP+12]				; sum memory offset
 	CDQ
 	MOV						EAX,			[ESI]
+	CMP						EAX,			0
+	JL						_negative
 	MOV						EBX,			COUNT
 	IDIV					EBX
 	CMP						EDX,			5
@@ -396,6 +398,20 @@ _exit:
 
 _increment:
 	INC						EAX
+	JMP						_exit
+
+_negative:
+	MOV						EBX,			COUNT
+	NEG						EAX
+	IDIV					EBX
+	CMP						EDX,			5
+	JGE						_increase
+	NEG						EAX
+	JMP						_exit
+
+_increase:
+	INC						EAX
+	NEG						EAX
 	JMP						_exit
 
 getAverage ENDP
@@ -418,15 +434,14 @@ stringify PROC
 	MOV						ESI,			[EBP+8]						; integer
 	MOV						ECX,			[EBP+12]					; gets size/length of integer
 	MOV						EDI,			[EBP+16]
-	MOV						EAX,			[ESI]
 	MOV						EBX,			10
+	MOV						EAX,			[ESI]
 	CMP						EAX,			0
+	JL						_negative
 
 _incrementPrep:
 	INC						EDI
 	LOOP					_incrementPrep								; increments in preparation for backward fill of ASCII representation of number.
-	JG						_divide
-	NEG						EAX											; flip to positive for absolute value
 
 _divide:
 	MOV						EDX,			0							; clears for remainder after division
@@ -439,11 +454,22 @@ _divide:
 	INC						ECX
 	CMP						AL,			0
 	JNZ						_divide										; check if more division required
-
+	POP						EDX											; grab negative sign from stack
+	CMP						DL,				2Dh
+	JNE						_skip
+	MOV						[EDI],			DL
+	DEC						EDI
+_skip:
 	MOV						ESP,			EBP
 	POP						EBP
 	RET						12
 
+_negative:
+	NEG						EAX											; flip to positive for absolute value
+	PUSH					'-'											; place the negative sign
+	DEC						EDI
+	;INC						EDI
+	JMP						_incrementPrep
 
 stringify ENDP
 

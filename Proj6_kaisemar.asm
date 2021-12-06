@@ -226,7 +226,9 @@ _convert:
 	JMP					_exit
 
 _invalid:
+	POP					ECX
 	INC					ECX								; input didnt count
+	POP					EBP
 	mDisplayString		[EBP+16]
 
 _exit:

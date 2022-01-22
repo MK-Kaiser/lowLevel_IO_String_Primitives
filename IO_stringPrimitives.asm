@@ -1,11 +1,7 @@
-TITLE Project 6     (Proj6_kaisemar.asm)
 
 COMMENT !
 Author: Mark Kaiser
-Last Modified: 4 December 2021
-OSU email address: kaisemar@oregonstate.edu
-Course number/section:   CS271 Section 400
-Project Number: 6            
+Last Modified: 4 December 2021          
 Due Date: 5 December 2021
 Description: This program takes in an array of string characters and stores them as integers via ReadVal and mGetString.
 getSum and getAverage then perform calculations on the stored integers and then WriteVal is called to convert these integers back to string format.
@@ -68,7 +64,7 @@ main PROC
 ; Receives: N/A
 ; Returns: N/A
 ; Usage of PUSH, OFFSET, CALL, CMP, MOV, INVOKE, LOOP, SIZEOF, JConds referenced from: CS271 Instruction Reference.
-; Formatting in accordance with: CS271 Style Guide.
+; Formatting in accordance with: Style Guide.
 ; Modifies Stack to push parameters, calls all other procedures to include: Intro, getSum, getAverage, sayBye, ReadVal and WriteVal.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	PUSH					OFFSET			programTitle
@@ -124,8 +120,8 @@ Intro PROC
 ; Preconditions: N/A
 ; Receives: Memory address of programTitle and instructions from the stack.
 ; Returns: Outputs the strings stored at the referenced addresses.
-; Usage of PUSH, MOV, POP referenced from: CS271 Instruction Reference.
-; Formatting in accordance with: CS271 Style Guide.
+; Usage of PUSH, MOV, POP referenced from:  Instruction Reference.
+; Formatting in accordance with:  Style Guide.
 ; Modifies Stack to push parameters, sends to MACRO mDisplayString.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -149,7 +145,7 @@ ReadVal PROC
 ; Receives: prompt, input buffer offset, error offset, COUNT constant, and list buffer offset.
 ; Returns: Outputs user prompt and stores user input as strings in input buffer and LODSB transfers as integers to list buffer.
 ; Usage of PUSH, POP, OFFSET, INC, DEC, CMP, JConds, LODSB, NEG, SUB, IMUL referenced from: CS271 Instruction Reference.
-; Formatting in accordance with: CS271 Style Guide.
+; Formatting in accordance with:  Style Guide.
 ; Prompts user for input by passing prompt to mDisplayString MACRO and then the input buffer and buffer size are passed to mGetString MACRO.
 ; LODSB is utilized to move a copy into the AL register, where the input value is compared against the upper and lower limits.
 ; If a supplied character is outside of these limits a jump to _invalid occurs where ECX is restored and mDisplayString is called to display the warning.
@@ -258,7 +254,7 @@ WriteVal PROC
 ; Receives: Display prompt, list, COUNT constant, and buffer.
 ; Returns: Outputs list, sum and average.
 ; Usage of PUSH, POP, INC, DEC, OFFSET, CALL, CMP, ADD, LOOP, JConds referenced from: CS271 Instruction Reference.
-; Formatting in accordance with: CS271 Style Guide.
+; Formatting in accordance with: Style Guide.
 ; Modifies Stack to push parameters, stack is passed a memory offset for the display prompt, list, and buffer.
 ; Leverages sub procedure stringify to convert characters to integers and uses MACRO mDisplayString to output.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -330,7 +326,7 @@ getSum PROC
 ; Receives: Memory address of the list of integers and sum.
 ; Returns: The sum stored at the provided memory address.
 ; Usage of PUSH, MOV, POP, LOOP, SUB, JMP, LODSD referenced from: CS271 Instruction Reference.
-; Formatting in accordance with: CS271 Style Guide.
+; Formatting in accordance with:  Style Guide.
 ; Modifies Stack to push parameters, iterates through list of integers and adds each value to sum.
 ; If negative subtracts instead.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -369,7 +365,7 @@ getAverage PROC
 ; Receives: Memory address of average and sum from the stack.
 ; Returns: Stores average at memory address.
 ; Usage of PUSH, MOV, POP, CDQ, Jcond, IDIV, CMP referenced from: CS271 Instruction Reference.
-; Formatting in accordance with: CS271 Style Guide.
+; Formatting in accordance with:  Style Guide.
 ; Modifies Stack to push parameters, divides sum by COUNT. Handles negative sum separately.
 ; Rounds up .5 values.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -423,7 +419,7 @@ stringify PROC
 ; Receives: An integer.
 ; Returns: The equivalent integer in string form.
 ; Usage of PUSH, MOV, POP, CMP, JL, INC, DEC, LOOP, XCHG, NEG referenced from: CS271 Instruction Reference.
-; Formatting in accordance with: CS271 Style Guide.
+; Formatting in accordance with:  Style Guide.
 ; Modifies Stack to push parameters, sends to MACRO mDisplayString.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -478,8 +474,8 @@ sayBye PROC
 ; Preconditions: N/A
 ; Receives: Memory address of goodbye from the stack.
 ; Returns: Outputs the strings stored at the referenced addresses.
-; Usage of PUSH, MOV, POP referenced from: CS271 Instruction Reference.
-; Formatting in accordance with: CS271 Style Guide.
+; Usage of PUSH, MOV, POP referenced from:  Instruction Reference.
+; Formatting in accordance with:  Style Guide.
 ; Modifies Stack to push parameters, sends to MACRO mDisplayString.
 ; -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
